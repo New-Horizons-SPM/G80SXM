@@ -11,6 +11,7 @@ from   tkinter import filedialog
 from LineProfilePanel import LineProfilePanel
 from FFTPanel import FFTPanel
 from STSPanel import STSPanel
+from FilterPanel import FilterPanel
 import numpy as np
 import nanonispy as nap
 import math
@@ -73,6 +74,7 @@ class MainPanel(Panel):
         self.linePanel = LineProfilePanel(*commonParams)                        # 1D Line Plot: Plots 1D lines through a cursor
         self.fftPanel  = FFTPanel(*commonParams)
         self.stsPanel  = STSPanel(*commonParams)
+        self.fltPanel  = FilterPanel(*commonParams)
         
     def buttons(self):
         self.btn = {
@@ -80,13 +82,14 @@ class MainPanel(Panel):
             "DrawHAT":  tk.Button(self.master, text="HAT.xyz",  command=lambda: self.placeMolecule("../xyz/HAT.xyz")), # Button to place a HAT molecule
             "DrawDCA":  tk.Button(self.master, text="DCA.xyz",  command=lambda: self.placeMolecule("../xyz/DCA.xyz")), # Button to place a DCA molecule
             "DrawCu":   tk.Button(self.master, text="Cu.xyz",   command=lambda: self.placeMolecule("../xyz/Cu.xyz")),  # Button to place a Cu atom
+            "Undo":     tk.Button(self.master, text="Undo",     command=self.undoMolecule),         # Button to place a Cu atom
             "cmap":     tk.Button(self.master, text="viridis",  command=super()._cmap),             # Button to cycle through colour maps
             "Tilt":     tk.Button(self.master, text="Tilt",     command=self.tilt),                 # Button to cycle through colour maps
             "Shift":    tk.Button(self.master, text="Shift",    command=self.toggleShiftL),         # Button to cycle through colour maps
             "Profiles": tk.Button(self.master, text="Profiles", command=self.linePanel.create),     # Button to activate 1D Profiles panel
             "FFT":      tk.Button(self.master, text="FFT",      command=self.fftPanel.create),      # Button to activate FFT panel
             "STS":      tk.Button(self.master, text="STS",      command=self.stsPanel.create),      # Button to activate STS panel
-            # "Filter":   tk.Button(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
+            "Filter":   tk.Button(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
             "RemInset": tk.Button(self.master, text="Rem Inset",command=self._removeInset),         # Save all active panels to a .g80 file
             "Save":     tk.Button(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
             "Load":     tk.Button(self.master, text="Load",     command=self._load),                # Load a .g80 file
@@ -122,7 +125,9 @@ class MainPanel(Panel):
     def _updateSXM(self):
         self.tiltedim = self.im + self._tiltPlane()                             # Adjust the raw image according to tilt correction
         
-        self.finalim  = self.tiltedim
+        self.unfilteredIm = self.tiltedim
+        
+        self.finalim = self.fltPanel.applyFilters(self.unfilteredIm,True)
         
         cmap = self.cmaps[self.cmap][1]
         self.ax.imshow(self.finalim,extent=self.extent,cmap=cmap(),
@@ -532,6 +537,15 @@ class MainPanel(Panel):
             atoms.positions += np.array(self.molPos[i])                         # Molecule goes where the click happened
             
             self.atoms.append(atoms)
+    
+    def undoMolecule(self):
+        self.atoms    = self.atoms[:-1]
+        self.molFiles = self.molFiles[:-1]
+        self.molRot   = self.molRot[:-1]
+        self.molRotX  = self.molRotX[:-1]
+        self.molRotY  = self.molRotY[:-1]
+        self.molPos   = self.molPos[:-1]
+        self.update(upd=[0])
     ###########################################################################
     # Tilt Methods
     ###########################################################################
