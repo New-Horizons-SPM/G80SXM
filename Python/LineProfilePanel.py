@@ -24,8 +24,7 @@ class LineProfilePanel(Panel):
     def init(self):
         self.cPos = [np.array([[0.5,0.5],[0.75,0.75]])]                         # P1P2 plots a 1D profile through the line segment from cPos[0] to cPos[1]
         self.activeCursor = np.array([-1,0])                                    # [0] -1=not placing any cursors atm. 0=Placing P1 (used in XY and P1P2 modes) 1=Placing P2 (used in only P2 mode when drawing a line b/w P1 and P2)
-        self.showInfo = [1]                                                     # List of bools that determine if segInfo is shown for each line segment in P1P2 mode
-        self.fit      = [0]                                                     # List of bools that determine if fitting steps to line segment in P1P2 mode
+        self.segInfo  = [[-1,-1,1,0]]                                           # [0]: segment length. [1]: segment angle. [2]: showInfo. [3]: segment line colour.
         self.fitLocations = [[]]                                                # List of locations along the 1D line segment (in P1P2 mode) to fit linear lines between
         self.fitProfileActive = False                                           # Flag for when we're currently fitting a line segment (in P1P2 mode)
     ###########################################################################
@@ -40,6 +39,7 @@ class LineProfilePanel(Panel):
             "Cursor 1"      : tk.Button(self.master, text="Cursor 1",   command=lambda:self.cursor(0)),
             "Cursor 2"      : tk.Button(self.master, text="Cursor 2",   command=lambda:self.cursor(1)),
             "Info"          : tk.Button(self.master, text="Toggle Info",command=self.toggleShowInfo),
+            "LineColour"    : tk.Button(self.master, text="Line Colour",command=self.changeLineColour),
             "Fit Steps"     : tk.Button(self.master, text="Fit Steps",  command=self.fitSteps),
             "Inset"         : tk.Button(self.master, text="Inset",      command=super().addInset),
             "Imprint"       : tk.Button(self.master, text="Imprint",    command=super()._imprint),
@@ -64,8 +64,8 @@ class LineProfilePanel(Panel):
         sx = len(im[0]); sy = len(im)                                           # size of the image in pixels
         
         idx = self.activeCursor[1]
-        zx = im[int(sy*(1-self.cPos[idx][0][1])),:]/self.zunit                               # Raw 1D horizontal cut
-        zy = im[:,int(sx*self.cPos[idx][0][0])]/self.zunit                                   # Raw 1D vertical cut
+        zx = im[int(sy*(1-self.cPos[idx][0][1])),:]/self.zunit                  # Raw 1D horizontal cut
+        zy = im[:,int(sx*self.cPos[idx][0][0])]/self.zunit                      # Raw 1D vertical cut
         offset =  0*1.05*np.max(zx)                                             # Offset the 1D cuts so easier to see. (currently set to zero)
         
         xx = np.linspace(0,sx*dxy[0],sx)/self.xunit                             # Pixel size in x and y might be different (lines vs pixels)
@@ -88,10 +88,7 @@ class LineProfilePanel(Panel):
         dxy = np.copy(self.mainPanel.dxy)
         sx = len(im[0]); sy = len(im)                                           # size of the image in pixels
         
-        self.segInfo = []
         for idx,cPos in enumerate(self.cPos):
-            col = self.mainPanel.mplibColours[idx]
-            
             p1 = cPos[0]*sx
             p2 = cPos[1]*sy
         
@@ -112,22 +109,29 @@ class LineProfilePanel(Panel):
             p1 = p1*dxy
             p2 = p2*dxy 
             length = math.sqrt((p1[1] - p2[1])**2 + (p1[0] - p2[0])**2)/self.xunit
-            self.segInfo.append(np.array([length,180*theta/math.pi-self.mainPanel.scanAngle,self.showInfo[idx]]))
+            
+            self.segInfo[idx][0] = length
+            self.segInfo[idx][1] = 180*theta/math.pi-self.mainPanel.scanAngle
+            col = self.mainPanel.mplibColours[self.segInfo[idx][3]]
             
             # If we're placing the fit lines, leave 1D data (zx) as is and plot fit lines on top
-            if(idx == self.activeCursor[1] and self.fit[idx] and self.fitProfileActive):
+            if(idx == self.activeCursor[1] and self.fitProfileActive):
                 self.ax.axvline(x=self.motionFitX,c=col)
                 
                 for X in self.fitLocations[idx]:
                     self.ax.axvline(x=X,c=col)
             
-            # If we have already placed fit lines, fit the data (zx) with linear line segments
-            if(self.fit[idx] and not self.fitProfileActive):
+            # If we have already placed fitLocations, fit the data (zx) with linear line segments
+            hasFit = len(self.fitLocations[idx])
+            if(hasFit and not self.fitProfileActive):
                 zx = self.fitzx(idx,xx,zx)
             
+            # If we're currently placing fitLocations for another segment, don't show this one
             if(self.fitProfileActive and idx != self.activeCursor[1]):
                 continue
             
+            if(col == 'white'): continue                                        # Don't plot if white. Looks weird on the grid
+        
             self.ax.plot(xx,zx,c=col)
             
         self.ax.set_xlabel('Position (nm)'); self.ax.set_ylabel('z (pm)')
@@ -198,47 +202,54 @@ class LineProfilePanel(Panel):
         numCursors = len(self.cPos)
         self.activeCursor[1] += 1
         if(self.activeCursor[1] == numCursors): self.activeCursor[1] = 0
-        c = self.mainPanel.mplibColours[self.activeCursor[1]]                   # Get the default matplotlib colour for this line so it matches the colour on profile panel                                    
+        cidx = self.segInfo[self.activeCursor[1]][3]
+        c = self.mainPanel.mplibColours[cidx]                                   # Colour of the next cursor
         self.btn['Next Cursor'].configure(bg=c)
-        self.update()
-        self.mainPanel.update()
+        self.mainPanel.update(upd=[0,1])
         
     def addCursor(self):
         self.cPos.append(np.array([[0.5,0.5],[0.75,0.75]]))                     # Just add this as initial cursor positions
         self.activeCursor[1] = len(self.cPos) - 1                               # Auto select this new cursor set
-        c = self.mainPanel.mplibColours[self.activeCursor[1]]                   # Get the default matplotlib colour for this line so it matches the colour on profile panel                                    
+        c = self.mainPanel.mplibColours[self.activeCursor[1]]                   # Next colour in the list
         self.btn['Next Cursor'].configure(bg=c)
-        self.showInfo.append(1)
-        self.fit.append(0)
+        self.segInfo.append([-1,-1,1,self.activeCursor[1]])                     # Default to c colour and show segment info = 1
         self.fitLocations.append([])
-        self.update()
-        self.mainPanel.update()
+        self.mainPanel.update(upd=[0,1])
     
     def remCursor(self):
         if(len(self.cPos) > 1):                                                 # Keep at least one cursor there always
             del self.cPos[self.activeCursor[1]]                                 # Remove this cursor from the list
-            del self.showInfo[self.activeCursor[1]]                             # Remove the flag for show segInfo for this cursor
-            del self.fit[self.activeCursor[1]]
+            del self.segInfo[self.activeCursor[1]]
             del self.fitLocations[self.activeCursor[1]]
             if(self.activeCursor[1] > len(self.cPos) - 1):                      # In case the active cursor was the last one
                 self.activeCursor[1] = len(self.cPos) - 1
-        c = self.mainPanel.mplibColours[self.activeCursor[1]]                   # Get the default matplotlib colour for this line so it matches the colour on profile panel                                    
+                
+        cidx = self.segInfo[self.activeCursor[1]][3]
+        c = self.mainPanel.mplibColours[cidx]                                   # Colour of the next available cursor
         self.btn['Next Cursor'].configure(bg=c)
-        self.update()
-        self.mainPanel.update()
+        self.mainPanel.update(upd=[0,1])
     
     def toggleShowInfo(self):
         if(self.plotModes[self.plotMode] == "XY"): return
-        self.showInfo[self.activeCursor[1]] = not self.showInfo[self.activeCursor[1]]
+        self.segInfo[self.activeCursor[1]][2] = not self.segInfo[self.activeCursor[1]][2]
         self.mainPanel.update()
+    
+    def changeLineColour(self):
+        numColours = len(self.mainPanel.mplibColours)
+        self.segInfo[self.activeCursor[1]][3] += 1                              # Next colour in the list
+        if(self.segInfo[self.activeCursor[1]][3] == numColours):
+            self.segInfo[self.activeCursor[1]][3] = 0                           # Cycle back to the first colour
         
+        cidx = self.segInfo[self.activeCursor[1]][3]
+        c = self.mainPanel.mplibColours[cidx]
+        self.btn['Next Cursor'].configure(bg=c)
+        self.mainPanel.update(upd=[0,1])
     ###########################################################################
     # Fitting Step Edges
     ###########################################################################
     def fitSteps(self):
         if(self.plotModes[self.plotMode] == "XY"): return
         self.fitLocations[self.activeCursor[1]] = []
-        self.fit[self.activeCursor[1]] = 1
         self.fitBind()
         
     def fitBind(self):
@@ -271,10 +282,6 @@ class LineProfilePanel(Panel):
         
     def setFit(self,event):
         self.fitUnbind()
-        
-        if(not len(self.fitLocations[self.activeCursor[1]])):
-            self.fit[self.activeCursor[1]] = 0
-        
         self.update()
     ###########################################################################
     # Misc Button Functions
@@ -283,8 +290,7 @@ class LineProfilePanel(Panel):
         self.plotMode += 1
         if(self.plotMode == len(self.plotModes)): self.plotMode = 0
         self.btn["Mode"].configure(text="Mode: " + self.plotModes[self.plotMode])
-        self.update()
-        self.mainPanel.update()
+        self.mainPanel.update(upd=[0,1])
     ###########################################################################
     # Save
     ###########################################################################
@@ -323,9 +329,11 @@ class LineProfilePanel(Panel):
             if(len(self.cPos) == 0):
                 self.cPos = [np.array([[0.5,0.5],[0.75,0.75]])]                 # Chuck the default in there if 0 cursors entered
             
+            # Temporary solution until these params are saved
             numCursor = len(self.cPos)
-            self.showInfo = [1]*numCursor
-            self.fit      = [0]*numCursor
+            self.segInfo = []
+            for i in range(numCursor):
+                self.segInfo.append([-1,-1,1,i])
             self.fitLocations = [[]]*numCursor
             
         self.mainPanel.update()
