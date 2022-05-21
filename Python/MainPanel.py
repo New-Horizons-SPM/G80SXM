@@ -29,6 +29,7 @@ class MainPanel(Panel):
     
     # Main Figure
     scaleBar = True; plotCaption = True
+    mplibColours = plt.rcParams['axes.prop_cycle'].by_key()['color']
     
     # Inset
     moveInsetActive = False
@@ -92,6 +93,7 @@ class MainPanel(Panel):
             "Filter":   tk.Button(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
             "RemInset": tk.Button(self.master, text="Rem Inset",command=self._removeInset),         # Save all active panels to a .g80 file
             "Save":     tk.Button(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
+            "PNG":      tk.Button(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
             "Load":     tk.Button(self.master, text="Load",     command=self._load),                # Load a .g80 file
             "Quit":     tk.Button(self.master, text="Quit",     command=self.quit)                  # Button to quit the program
             }
@@ -297,26 +299,29 @@ class MainPanel(Panel):
         
         if(self.linePanel.plotMode == 1):
             linewidth = 1; linestyle = 'dashed'
-            x = self.linePanel.cPos[:,0]
-            y = self.linePanel.cPos[:,1]
-            self.ax.plot(x*self.extent[1],y*self.extent[3],c='b',               # Horizontal 1D line through current cursor position
-                                linewidth=linewidth,linestyle=linestyle)
+            for idx,cPos in enumerate(self.linePanel.cPos):
+                x = cPos[:,0]
+                y = cPos[:,1]
+                c = self.mplibColours[idx]                                      # Get the default matplotlib colour for this line so it matches the colour on profile panel
+                self.ax.plot(x*self.extent[1],y*self.extent[3],c=c,             # Horizontal 1D line through current cursor position
+                                    linewidth=linewidth,linestyle=linestyle)
             
-            segInfo = self.linePanel.segInfo
-            self.ax.annotate("{:.2f} nm, {:.1f}$^\circ$".format(segInfo[0],segInfo[1]),
-                                xy=(self.linePanel.cPos[0]*self.lxy),fontsize=10,color='black')
+                segInfo = self.linePanel.segInfo[idx]
+                self.ax.annotate("{:.2f} nm, {:.1f}$^\circ$".format(segInfo[0],segInfo[1]),
+                                    xy=(cPos[0]*self.lxy),fontsize=10,color='white')
             
             # props = {'ha': 'center', 'va': 'center'}
-            # self.ax.text(*(self.linePanel.cPos[0]*self.lxy),
+            # self.ax.text(*(cPos[0]*self.lxy),
             #              "{:.2f} nm, {:.1f}$^\circ$".format(segInfo[0],segInfo[1]),
             #              props,rotation=segInfo[1],fontsize=10,color='black')
-        
+            
         if(self.linePanel.plotMode == 0):
-            linewidth = [0.5,0.75][self.linePanel.activeCursor > -1]             # Cursor is thin when set and thick when placing
-            linestyle = ['dashed','solid'][self.linePanel.activeCursor > -1]     # Cursor is dotted when set and solid when placing
-            self.ax.axhline(y=self.linePanel.cPos[0][1]*self.extent[3],c='b',    # Horizontal 1D line through current cursor position
+            idx = self.linePanel.activeCursor[1]
+            linewidth = [0.5,0.75][self.linePanel.activeCursor[0] > -1]             # Cursor is thin when set and thick when placing
+            linestyle = ['dashed','solid'][self.linePanel.activeCursor[0] > -1]     # Cursor is dotted when set and solid when placing
+            self.ax.axhline(y=self.linePanel.cPos[idx][0][1]*self.extent[3],c='b',    # Horizontal 1D line through current cursor position
                                linewidth=linewidth,linestyle=linestyle)     
-            self.ax.axvline(x=self.linePanel.cPos[0][0]*self.extent[1],c='r',    # Vertical 1D line through current cursor position
+            self.ax.axvline(x=self.linePanel.cPos[idx][0][0]*self.extent[1],c='r',    # Vertical 1D line through current cursor position
                                linewidth=linewidth,linestyle=linestyle)
         
     def cursorBind(self):
@@ -326,7 +331,7 @@ class MainPanel(Panel):
     def _cursorUnbind(self):
         self.canvas.get_tk_widget().unbind('<Button-1>', self.lcCursorBind)
         self.canvas.get_tk_widget().unbind('<Motion>', self.motionCursorBind)
-        self.activeCursor = -1
+        # self.activeCursor[0] = -1
     
     def _setCursor(self, event):
         size = self.fig.get_size_inches()*self.fig.dpi                          # size in pixels
@@ -629,6 +634,15 @@ class MainPanel(Panel):
     ###########################################################################
     # Save
     ###########################################################################
+    def _exportPNG(self,dpi=300):
+        initialfile = self.sxm.header['scan_file'].rsplit('\\',1)[1].rsplit('.')[0]
+        
+        path = filedialog.asksaveasfilename(title="Save as",initialfile=initialfile + '.png')
+        if path == "":
+            return None
+        if(not path.endswith('.png')): path += '.png'
+        self.fig.savefig(path,format='png',dpi=dpi)
+                
     def _save(self):
         saveString  = self._buildSaveString()
         saveString += self.linePanel.buildSaveString()
