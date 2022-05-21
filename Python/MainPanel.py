@@ -29,12 +29,12 @@ class MainPanel(Panel):
     
     # Main Figure
     scaleBar = True; plotCaption = True
-    mplibColours = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    mplibColours = ['black'] + plt.rcParams['axes.prop_cycle'].by_key()['color'] + ['white']
     
     # Inset
     moveInsetActive = False
     insetPos = np.array([0.65, 0.65, 0.3, 0.3]);
-    insetColours = ['black','white'] + mplibColours
+    insetColours = ['black','white'] + plt.rcParams['axes.prop_cycle'].by_key()['color']
     insetCmap = 0
     
     # Tilt
@@ -327,18 +327,21 @@ class MainPanel(Panel):
         if(self.linePanel.plotMode == 1):
             linewidth = 2; linestyle = 'dashed'
             for idx,cPos in enumerate(self.linePanel.cPos):
+                segInfo  = self.linePanel.segInfo[idx]
+                
                 x = cPos[:,0]
                 y = cPos[:,1]
-                c = self.mplibColours[idx]                                      # Get the default matplotlib colour for this line so it matches the colour on profile panel
+                c = self.mplibColours[segInfo[3]]                               # Get the default matplotlib colour for this line so it matches the colour on profile panel
                 self.ax.plot(x*self.extent[1],y*self.extent[3],c=c,             # Horizontal 1D line through current cursor position
                                     linewidth=linewidth,linestyle=linestyle)
             
-                segInfo = self.linePanel.segInfo[idx]
+                showInfo = segInfo[2]
+                if(not showInfo): continue
                 
-                if(not segInfo[2]): continue
-                
-                self.ax.annotate("{:.2f} nm, {:.1f}$^\circ$".format(segInfo[0],segInfo[1]),
-                                    xy=(cPos[0]*self.lxy),fontsize=13,color='white')
+                length = segInfo[0]
+                angle  = segInfo[1]
+                self.ax.annotate("{:.2f} nm, {:.1f}$^\circ$".format(length,angle),
+                                    xy=(cPos[0]*self.lxy),fontsize=13,color=c)
             
             # props = {'ha': 'center', 'va': 'center'}
             # self.ax.text(*(cPos[0]*self.lxy),
@@ -447,6 +450,7 @@ class MainPanel(Panel):
         self._placeMoleculeBind()
         
     def _placeMoleculeBind(self):
+        self.canvas.get_tk_widget().focus_set()
         self.lcMolBind       = self.canvas.get_tk_widget().bind('<Button-1>', self._setMolecule)
         self.rcMolBind       = self.canvas.get_tk_widget().bind('<Button-3>', self._cancelMolecule)
         self.motionMolBind   = self.canvas.get_tk_widget().bind('<Motion>',   self._moveMolecule)
