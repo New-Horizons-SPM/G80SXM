@@ -134,39 +134,48 @@ class LineProfilePanel(Panel):
         self.ax.grid()
     
     def fitzx(self,idx,xx,zx):
-        fs = 10                                                             # Annotation font size
-        xSteps = []; xPos = []                                              # xStep edge heights and xpos for annotations
+        fs = 10                                                                 # Annotation font size
+        xSteps = []; xPos = []                                                  # xStep edge heights and xpos for annotations
         xFit = self.fitLocations[idx]
-        if(xFit):                                                      # Take care of the first marker
-            idx = xx < xFit[0]                                         # Index of all the points to the left of marker 0
-            # zx[idx] = np.average(zx[idx])                                 # Average all these points
-            m,c = np.polyfit(xx[idx],zx[idx],1)                             # Fit all these points with a straight line
-            zx[idx] = m*xx[idx] + c                                         # Equation of the straight line
-            xSteps.append(np.average(zx[idx]));                             # Height of the step to the left
-            xPos.append(xx[len(idx) - 1 - idx[::-1].tolist().index(1)])     # Position of the step edge (for annotating)
+        if(xFit):                                                               # Take care of the first marker
+            idx = xx < xFit[0]                                                  # Index of all the points to the left of marker 0
+            m,c = np.polyfit(xx[idx],zx[idx],1)                                 # Fit all these points with a straight line
+            zx[idx] = m*xx[idx] + c                                             # Equation of the straight line
+            
+            lastOne = len(idx) - list(idx[::-1]).index(1) - 1
+            xSteps.append(np.average(zx[lastOne]));                             # Base of the step to the right
+            xPos.append(xx[lastOne])                                            # Position of the step edge (for annotating)
+            
             # self.ax[1].annotate("{:.0f}".format(zx[idx.tolist().index(1)]), xy=(xx[idx.tolist().index(1)], zx[idx.tolist().index(1)] + 10),fontsize=fs,color='green')
             
-        for x in range(2,len(xFit),2):                                 # Take cate of all steps in the middle
-            idx = (xx > xFit[x-1]) & (xx < xFit[x])               # Step is between this fit point and the previous one
-            # zx[idx] = np.average(zx[idx])
-            m,c = np.polyfit(xx[idx],zx[idx],1)                             # Linear fit
-            zx[idx] = m*xx[idx] + c                                         # Equation of the line
-            if(sum(idx)):                                                   # If there are any points between them figure out the step height
-                xSteps.append(np.average(zx[idx]));                         # This step height is the average of the linear line (i.e. the midpoint)
-                xPos.append(xx[len(idx) - 1 - idx[::-1].tolist().index(1)]) # The location of the step along x axis... used for annotating
+        for x in range(2,len(xFit),2):                                          # Take care of all steps in the middle
+            idx = (xx > xFit[x-1]) & (xx < xFit[x])                             # Step is between this fit point and the previous one
+            m,c = np.polyfit(xx[idx],zx[idx],1)                                 # Linear fit
+            zx[idx] = m*xx[idx] + c                                             # Equation of the line
+            if(sum(idx)):                                                       # If there are any points between them figure out the step height
+                firstOne = list(idx).index(1)
+                xSteps.append(np.average(zx[firstOne]));                        # Height of the step to the left
+                lastOne = len(idx) - list(idx[::-1]).index(1) - 1
+                xSteps.append(np.average(zx[lastOne]));                         # Base of the step to the Right
+                xPos.append(xx[lastOne])                                        # The location of the step along x axis... used for annotating
+                
                 # self.ax[1].annotate("{:.0f}".format(zx[idx.tolist().index(1)]), xy=(xx[idx.tolist().index(1)], zx[idx.tolist().index(1)] + 10),fontsize=fs,color='green')
         
-        if(xFit):                                                      # Take care of the last step
-            idx = xx > xFit[-1]                                        # Which is to the right of the last marker/fit point
-            # zx[idx] = np.average(zx[idx])
+        if(xFit):                                                               # Take care of the last step
+            idx = xx > xFit[-1]                                                 # Which is to the right of the last marker/fit point
             m,c = np.polyfit(xx[idx],zx[idx],1)
             zx[idx] = m*xx[idx] + c
-            xSteps.append(np.average(zx[idx]))
+            
+            firstOne = list(idx).index(1)
+            xSteps.append(np.average(zx[firstOne]));                            # Height of the step to the left
+            
             # self.ax[1].annotate("{:.0f}".format(zx[idx.tolist().index(1)]), xy=(xx[idx.tolist().index(1)], zx[idx.tolist().index(1)] + 10),fontsize=fs,color='green')
         
-        for i in range(len(xPos)):                                          # For each step edge...
-            dz = xSteps[i+1]-xSteps[i]                                      # Calculate step height
-            yPos = xSteps[i] + dz/2                                         # Go to 
+        for i in range(len(xPos)):                                              # For each step edge...
+            idx=i*2
+            dz = xSteps[idx+1]-xSteps[idx]                                      # Calculate step height
+            yPos = xSteps[idx] + dz/2                                           # Go to 
+            
             self.ax.annotate("{:.0f} pm".format(abs(dz)), xy=(xPos[i], yPos),fontsize=fs,color='black')
         
         return zx
