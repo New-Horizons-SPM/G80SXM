@@ -298,7 +298,7 @@ class MainPanel(Panel):
         if(not self.linePanel.active and not self.linePanel.imprint): return
         
         if(self.linePanel.plotMode == 1):
-            linewidth = 1; linestyle = 'dashed'
+            linewidth = 2; linestyle = 'dashed'
             for idx,cPos in enumerate(self.linePanel.cPos):
                 x = cPos[:,0]
                 y = cPos[:,1]
@@ -308,7 +308,7 @@ class MainPanel(Panel):
             
                 segInfo = self.linePanel.segInfo[idx]
                 self.ax.annotate("{:.2f} nm, {:.1f}$^\circ$".format(segInfo[0],segInfo[1]),
-                                    xy=(cPos[0]*self.lxy),fontsize=10,color='white')
+                                    xy=(cPos[0]*self.lxy),fontsize=13,color='white')
             
             # props = {'ha': 'center', 'va': 'center'}
             # self.ax.text(*(cPos[0]*self.lxy),
@@ -648,9 +648,10 @@ class MainPanel(Panel):
         saveString += self.linePanel.buildSaveString()
         saveString += self.fftPanel.buildSaveString()
         
-        default = self.sxm.header['scan_file'].rsplit('\\',1)[1].rsplit('.')[0]
+        default = self.sxm.header['scan_file'].rsplit('\\',1)[1].rsplit('.')[0] + '.g80'
         path = filedialog.asksaveasfilename(title="Save as",initialfile=default)
-        with open(path + ".g80",'w') as f:
+        if(not path.endswith('.g80')): path += '.g80'
+        with open(path,'w') as f:
             f.write(saveString)
         
     def _buildSaveString(self):
