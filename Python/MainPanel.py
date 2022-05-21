@@ -29,10 +29,13 @@ class MainPanel(Panel):
     
     # Main Figure
     scaleBar = True; plotCaption = True
+    mplibColours = plt.rcParams['axes.prop_cycle'].by_key()['color']
     
     # Inset
     moveInsetActive = False
     insetPos = np.array([0.65, 0.65, 0.3, 0.3]);
+    insetColours = ['black','white'] + mplibColours
+    insetCmap = 0
     
     # Tilt
     tiltActive= False
@@ -90,8 +93,10 @@ class MainPanel(Panel):
             "FFT":      tk.Button(self.master, text="FFT",      command=self.fftPanel.create),      # Button to activate FFT panel
             "STS":      tk.Button(self.master, text="STS",      command=self.stsPanel.create),      # Button to activate STS panel
             "Filter":   tk.Button(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
-            "RemInset": tk.Button(self.master, text="Rem Inset",command=self._removeInset),         # Save all active panels to a .g80 file
+            "InsetCol": tk.Button(self.master, text="Inset Col",command=self._insetCmap),           # Change the inset font and line colours
+            "RemInset": tk.Button(self.master, text="Rem Inset",command=self._removeInset),         # Remove the inset from main panel
             "Save":     tk.Button(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
+            "PNG":      tk.Button(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
             "Load":     tk.Button(self.master, text="Load",     command=self._load),                # Load a .g80 file
             "Quit":     tk.Button(self.master, text="Quit",     command=self.quit)                  # Button to quit the program
             }
@@ -196,6 +201,9 @@ class MainPanel(Panel):
         
         self.init = True
         
+        ## Re-initialise panels that need it
+        self.linePanel.init()
+        
         self.update(upd=[-1])
     ###########################################################################
     # Inset
@@ -222,6 +230,8 @@ class MainPanel(Panel):
             
         self.fig.axes[1].set_position(self.insetPos)                            # Adjust the size and position of the inset
         
+        self.setInsetCmap()
+        
     def _moveInsetBind(self,event):
         self.lcInsetBind     = self.canvas.get_tk_widget().bind('<Button-1>', self._moveInsetUnbind)
         self.motionInsetBind = self.canvas.get_tk_widget().bind('<Motion>', self._moveInsetPos)
@@ -241,7 +251,26 @@ class MainPanel(Panel):
         
         self.insetPos[0:2] = [X, Y]                                             # Change the position to x,y
         self.fig.axes[1].set_position(self.insetPos)                            # Don't redraw the figure, just reposition it
-        self.update(upd=[])                                                           # Update the canvas
+        self.update(upd=[])                                                     # Update the canvas
+    
+    def _insetCmap(self):
+        self.insetCmap += 1                                                     # Cycle through the colours
+        if(self.insetCmap == len(self.insetColours)): self.insetCmap = 0
+        self.setInsetCmap()
+        self.update(upd=[])
+    
+    def setInsetCmap(self):
+        # Also see Temporary Styling
+        # https://matplotlib.org/1.5.3/users/style_sheets.html
+        if(len(self.fig.axes) > 1):
+            self.fig.axes[1].spines['bottom'].set_color(self.insetColours[self.insetCmap])
+            self.fig.axes[1].spines['top'].set_color(self.insetColours[self.insetCmap])
+            self.fig.axes[1].spines['right'].set_color(self.insetColours[self.insetCmap])
+            self.fig.axes[1].spines['left'].set_color(self.insetColours[self.insetCmap])
+            self.fig.axes[1].tick_params(axis='x', colors=self.insetColours[self.insetCmap])
+            self.fig.axes[1].tick_params(axis='y', colors=self.insetColours[self.insetCmap])
+            self.fig.axes[1].yaxis.label.set_color(self.insetColours[self.insetCmap])
+            self.fig.axes[1].xaxis.label.set_color(self.insetColours[self.insetCmap])
         
     def _removeInset(self):
         if(len(self.fig.axes) > 1):                                             # If there is a secondary set of axes on the sxm figure, remove it
@@ -296,27 +325,33 @@ class MainPanel(Panel):
         if(not self.linePanel.active and not self.linePanel.imprint): return
         
         if(self.linePanel.plotMode == 1):
-            linewidth = 1; linestyle = 'dashed'
-            x = self.linePanel.cPos[:,0]
-            y = self.linePanel.cPos[:,1]
-            self.ax.plot(x*self.extent[1],y*self.extent[3],c='b',               # Horizontal 1D line through current cursor position
-                                linewidth=linewidth,linestyle=linestyle)
+            linewidth = 2; linestyle = 'dashed'
+            for idx,cPos in enumerate(self.linePanel.cPos):
+                x = cPos[:,0]
+                y = cPos[:,1]
+                c = self.mplibColours[idx]                                      # Get the default matplotlib colour for this line so it matches the colour on profile panel
+                self.ax.plot(x*self.extent[1],y*self.extent[3],c=c,             # Horizontal 1D line through current cursor position
+                                    linewidth=linewidth,linestyle=linestyle)
             
-            segInfo = self.linePanel.segInfo
-            self.ax.annotate("{:.2f} nm, {:.1f}$^\circ$".format(segInfo[0],segInfo[1]),
-                                xy=(self.linePanel.cPos[0]*self.lxy),fontsize=10,color='black')
+                segInfo = self.linePanel.segInfo[idx]
+                
+                if(not segInfo[2]): continue
+                
+                self.ax.annotate("{:.2f} nm, {:.1f}$^\circ$".format(segInfo[0],segInfo[1]),
+                                    xy=(cPos[0]*self.lxy),fontsize=13,color='white')
             
             # props = {'ha': 'center', 'va': 'center'}
-            # self.ax.text(*(self.linePanel.cPos[0]*self.lxy),
+            # self.ax.text(*(cPos[0]*self.lxy),
             #              "{:.2f} nm, {:.1f}$^\circ$".format(segInfo[0],segInfo[1]),
             #              props,rotation=segInfo[1],fontsize=10,color='black')
-        
+            
         if(self.linePanel.plotMode == 0):
-            linewidth = [0.5,0.75][self.linePanel.activeCursor > -1]             # Cursor is thin when set and thick when placing
-            linestyle = ['dashed','solid'][self.linePanel.activeCursor > -1]     # Cursor is dotted when set and solid when placing
-            self.ax.axhline(y=self.linePanel.cPos[0][1]*self.extent[3],c='b',    # Horizontal 1D line through current cursor position
+            idx = self.linePanel.activeCursor[1]
+            linewidth = [0.5,0.75][self.linePanel.activeCursor[0] > -1]             # Cursor is thin when set and thick when placing
+            linestyle = ['dashed','solid'][self.linePanel.activeCursor[0] > -1]     # Cursor is dotted when set and solid when placing
+            self.ax.axhline(y=self.linePanel.cPos[idx][0][1]*self.extent[3],c='b',    # Horizontal 1D line through current cursor position
                                linewidth=linewidth,linestyle=linestyle)     
-            self.ax.axvline(x=self.linePanel.cPos[0][0]*self.extent[1],c='r',    # Vertical 1D line through current cursor position
+            self.ax.axvline(x=self.linePanel.cPos[idx][0][0]*self.extent[1],c='r',    # Vertical 1D line through current cursor position
                                linewidth=linewidth,linestyle=linestyle)
         
     def cursorBind(self):
@@ -326,7 +361,7 @@ class MainPanel(Panel):
     def _cursorUnbind(self):
         self.canvas.get_tk_widget().unbind('<Button-1>', self.lcCursorBind)
         self.canvas.get_tk_widget().unbind('<Motion>', self.motionCursorBind)
-        self.activeCursor = -1
+        # self.activeCursor[0] = -1
     
     def _setCursor(self, event):
         size = self.fig.get_size_inches()*self.fig.dpi                          # size in pixels
@@ -629,14 +664,25 @@ class MainPanel(Panel):
     ###########################################################################
     # Save
     ###########################################################################
+    def _exportPNG(self,dpi=0):
+        if(not dpi): dpi = self.dpi
+        initialfile = self.sxm.header['scan_file'].rsplit('\\',1)[1].rsplit('.')[0]
+        
+        path = filedialog.asksaveasfilename(title="Save as",initialfile=initialfile + '.png')
+        if path == "":
+            return None
+        if(not path.endswith('.png')): path += '.png'
+        self.fig.savefig(path,format='png',dpi=dpi)
+                
     def _save(self):
         saveString  = self._buildSaveString()
         saveString += self.linePanel.buildSaveString()
         saveString += self.fftPanel.buildSaveString()
         
-        default = self.sxm.header['scan_file'].rsplit('\\',1)[1].rsplit('.')[0]
+        default = self.sxm.header['scan_file'].rsplit('\\',1)[1].rsplit('.')[0] + '.g80'
         path = filedialog.asksaveasfilename(title="Save as",initialfile=default)
-        with open(path + ".g80",'w') as f:
+        if(not path.endswith('.g80')): path += '.g80'
+        with open(path,'w') as f:
             f.write(saveString)
         
     def _buildSaveString(self):

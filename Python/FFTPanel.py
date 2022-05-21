@@ -12,6 +12,7 @@ class FFTPanel(Panel):
     fftZoom = 1;
     fftLabel = []; 
     fftDataActive = False
+    labelFontSize = 12
     ###########################################################################
     # Constructor
     ###########################################################################
@@ -64,12 +65,12 @@ class FFTPanel(Panel):
         for i in self.fftLabel:                                                 # fftLabel contains [1/lambda_x,1/lambda_y]
             wavelength = 1/np.sqrt(sum(i**2))
             self.ax.plot(i[0], i[1],'k',marker='.',markersize=5)
-            self.ax.annotate("{:.3f} nm".format(wavelength), xy=(i[0], i[1]),fontsize=8,color='black')
+            self.ax.annotate("{:.3f} nm".format(wavelength), xy=(i[0], i[1]),fontsize=self.labelFontSize,color='black')
             
         if(self.fftDataActive):                                                 # Also take care of the point we're currently labeling with the mouse
             wavelength = 1/np.sqrt(sum(self.fftMotionLabel**2))
             self.ax.plot(self.fftMotionLabel[0], self.fftMotionLabel[1],'k',marker='.',markersize=5)
-            self.ax.annotate("{:.3f}".format(wavelength), xy=(self.fftMotionLabel[0], self.fftMotionLabel[1]),fontsize=8,color='black')
+            self.ax.annotate("{:.3f}".format(wavelength), xy=(self.fftMotionLabel[0], self.fftMotionLabel[1]),fontsize=self.labelFontSize,color='black')
     ###########################################################################
     # Placing Labels
     ###########################################################################
@@ -152,8 +153,8 @@ class FFTPanel(Panel):
         with open(g80File, 'r') as f:
             line = "begin"
             while(not headerFound and line):
-                line = f.readline()[:-1]
-                if(line == "#FFTPanel"): headerFound = True
+                line = f.readline()[:]
+                if(line == "#FFTPanel\n"): headerFound = True
             if(not headerFound): print("Missing #FFTPanel"); return
             
             cmap = f.readline()[:-1]                                            # Line 2: colour map index
