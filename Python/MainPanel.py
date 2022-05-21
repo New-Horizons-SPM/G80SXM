@@ -634,7 +634,8 @@ class MainPanel(Panel):
     ###########################################################################
     # Save
     ###########################################################################
-    def _exportPNG(self,dpi=300):
+    def _exportPNG(self,dpi=0):
+        if(not dpi): dpi = self.dpi
         initialfile = self.sxm.header['scan_file'].rsplit('\\',1)[1].rsplit('.')[0]
         
         path = filedialog.asksaveasfilename(title="Save as",initialfile=initialfile + '.png')

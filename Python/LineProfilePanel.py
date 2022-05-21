@@ -167,7 +167,7 @@ class LineProfilePanel(Panel):
             for cursor in cPos:
                 saveString += ','.join("{:.5f}".format(pos)                         # Line 4...: cursor position
                                  for pos in cursor) + "\n"
-        print(np.shape(self.cPos))
+        
         return saveString
     ###########################################################################
     # Load
@@ -187,7 +187,6 @@ class LineProfilePanel(Panel):
             
             self.cPos = []                                                      # Line 4...: cursor position
             for cursor in range(numCursor):
-                print(cursor)
                 c1 = np.array(f.readline()[:-1].split(',')).astype(float)
                 c2 = np.array(f.readline()[:-1].split(',')).astype(float)
                 self.cPos.append(np.array([c1,c2]))
