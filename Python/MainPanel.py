@@ -95,6 +95,7 @@ class MainPanel(Panel):
             "Filter":   tk.Button(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
             "InsetCol": tk.Button(self.master, text="Inset Col",command=self._insetCmap),           # Change the inset font and line colours
             "RemInset": tk.Button(self.master, text="Rem Inset",command=self._removeInset),         # Remove the inset from main panel
+            "FlipIm":   tk.Button(self.master, text="Flip scan",command=self._flipScan),            # Remove the inset from main panel
             "Save":     tk.Button(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
             "PNG":      tk.Button(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
             "Load":     tk.Button(self.master, text="Load",     command=self._load),                # Load a .g80 file
@@ -777,6 +778,10 @@ class MainPanel(Panel):
     ###########################################################################
     # Misc
     ###########################################################################
+    def _flipScan(self):
+        self.im = np.flipud(self.im)
+        self.update()
+        
     def quit(self):
         self.master.destroy()                                                   # Close the Tkinter GUI
         os._exit(00)                                                            # Easier to restart kernal than to figure out Tkinter memory leaks (think this is a problem with spyder, not tkinter)
