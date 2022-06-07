@@ -12,13 +12,16 @@ from LineProfilePanel import LineProfilePanel
 from FFTPanel import FFTPanel
 from STSPanel import STSPanel
 from FilterPanel import FilterPanel
+from AIMLPanel import AIMLPanel
 import numpy as np
 import nanonispy as nap
+import nanonispyfit as napfit
 import math
 import os
 import io
 import pickle
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import matplotlib
 from ase.io import read
 from ase.visualize.plot import plot_atoms
@@ -42,6 +45,10 @@ class MainPanel(Panel):
     tiltFactor= 1e-14                                                           # tiltFactor will be user input eventually.
     curTilt   = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);                        # Tilt plane is defined by three points. curTilt keeps track of a tilt correction in progress
     tiltPlane = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);
+    
+    # Plane Fit
+    planeFitArea = []; curPlaneFitArea = [];
+    planeFitCursor = -1
     
     # Draw Atoms
     atoms = []; curMol = []                                                     # curMol is the filename of the molecule being placed
@@ -78,6 +85,7 @@ class MainPanel(Panel):
         self.fftPanel  = FFTPanel(*commonParams)
         self.stsPanel  = STSPanel(*commonParams)
         self.fltPanel  = FilterPanel(*commonParams)
+        self.aimlPanel = AIMLPanel(*commonParams)
         
     def buttons(self):
         self.btn = {
@@ -87,15 +95,17 @@ class MainPanel(Panel):
             "DrawCu":   tk.Button(self.master, text="Cu.xyz",   command=lambda: self.placeMolecule("../xyz/Cu.xyz")),  # Button to place a Cu atom
             "Undo":     tk.Button(self.master, text="Undo",     command=self.undoMolecule),         # Button to place a Cu atom
             "cmap":     tk.Button(self.master, text="viridis",  command=super()._cmap),             # Button to cycle through colour maps
-            "Tilt":     tk.Button(self.master, text="Tilt",     command=self.tilt),                 # Button to cycle through colour maps
-            "Shift":    tk.Button(self.master, text="Shift",    command=self.toggleShiftL),         # Button to cycle through colour maps
+            "Tilt":     tk.Button(self.master, text="Tilt",     command=self.tilt),                 # Button to tilt correct an image using arrow keys
+            "PlaneFit": tk.Button(self.master, text="Plane Fit",command=self.planeFit),             # Button to plane fit an area and subtract from image (like tilt but auto)
+            "Shift":    tk.Button(self.master, text="Shift",    command=self.toggleShiftL),         # Button to toggle shift mode
             "Profiles": tk.Button(self.master, text="Profiles", command=self.linePanel.create),     # Button to activate 1D Profiles panel
             "FFT":      tk.Button(self.master, text="FFT",      command=self.fftPanel.create),      # Button to activate FFT panel
             "STS":      tk.Button(self.master, text="STS",      command=self.stsPanel.create),      # Button to activate STS panel
             "Filter":   tk.Button(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
+            "AIML":     tk.Button(self.master, text="LabelMode",command=self.aimlPanel.create),          # Button to activate AI machine learning data labeler
             "InsetCol": tk.Button(self.master, text="Inset Col",command=self._insetCmap),           # Change the inset font and line colours
             "RemInset": tk.Button(self.master, text="Rem Inset",command=self._removeInset),         # Remove the inset from main panel
-            "FlipIm":   tk.Button(self.master, text="Flip scan",command=self._flipScan),            # Remove the inset from main panel
+            "FlipIm":   tk.Button(self.master, text="Flip scan",command=self._flipScan),            # Flip the current scan
             "Save":     tk.Button(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
             "PNG":      tk.Button(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
             "Load":     tk.Button(self.master, text="Load",     command=self._load),                # Load a .g80 file
@@ -122,6 +132,9 @@ class MainPanel(Panel):
         if(-1 in upd or 3 in upd):
             self.stsPanel.update()
             
+        if(-1 in upd or 4 in upd):
+            self.aimlPanel.update()
+            
         if(-1 in upd or 0 in upd):                                              # upd=0 selects mainPanel only
             self._updateOverlay()                                               # Add things to the foreground (e.g. scalebar and plot label)
         
@@ -144,6 +157,7 @@ class MainPanel(Panel):
         bottom, top = self.ax.get_ylim();                                       # Remember plot extent
         self._markSTS()
         self._drawCursor()
+        self._drawFitArea()
         self._drawMolecules()
         if(self.scaleBar): super().addPlotScalebar()                            # Add a scale bar to the plot
         if(self.plotCaption):                                                   # Caption the image with Vbias and Iset
@@ -204,6 +218,7 @@ class MainPanel(Panel):
         
         ## Re-initialise panels that need it
         self.linePanel.init()
+        self.aimlPanel.init()
         
         self.update(upd=[-1])
     ###########################################################################
@@ -656,6 +671,74 @@ class MainPanel(Panel):
         self.curTilt = np.copy(self.tiltPlane)
         self._tiltUnbind()
         self.update()
+    ###########################################################################
+    # Plane fit
+    ###########################################################################
+    def planeFit(self):
+        self.planeFitBind()
+        
+    def planeFitBind(self):
+        self.lcPFBind       = self.canvas.get_tk_widget().bind('<Button-1>', self.setPlaneFitArea)
+        self.rcPFBind       = self.canvas.get_tk_widget().bind('<Button-3>', self.cancelPlaneFit)
+        self.motionPFBind   = self.canvas.get_tk_widget().bind('<Motion>',   self.placePlaneFitArea)
+        self.curPlaneFitArea = [[0,0],[0,0]]
+        self.planeFitCursor = 0
+        
+    def planeFitUnbind(self):
+        self.canvas.get_tk_widget().unbind('<Button-1>',    self.lcPFBind)
+        self.canvas.get_tk_widget().unbind('<Button-3>',    self.rcPFBind)
+        self.canvas.get_tk_widget().unbind('<Motion>',      self.motionPFBind)
+        self.planeFitCursor = -1
+        
+    def placePlaneFitArea(self,event):
+        size = self.fig.get_size_inches()*self.fig.dpi                          # size in pixels
+        x = event.x
+        y = size[1] - event.y
+        X = super()._getX(x)
+        Y = super()._getY(y)
+        
+        self.curPlaneFitArea[self.planeFitCursor] = np.array([X,Y])
+        self.update(upd=[0])
+    
+    def setPlaneFitArea(self,event):
+        self.planeFitCursor += 1
+        if(self.planeFitCursor == 2):
+            self.planeFitUnbind()
+            self.planeFitArea = self.curPlaneFitArea
+            self.tiltPlane = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);
+            
+            topx = np.min([self.curPlaneFitArea[0][0],self.curPlaneFitArea[1][0]])
+            topy = np.max([self.curPlaneFitArea[0][1],self.curPlaneFitArea[1][1]])
+            topy = self.lxy[1] - topy
+            topCorner = ((np.array([topx,topy])/self.lxy)*np.flip(self.im.shape)).astype(int)
+            
+            botx = np.max([self.curPlaneFitArea[0][0],self.curPlaneFitArea[1][0]])
+            boty = np.min([self.curPlaneFitArea[0][1],self.curPlaneFitArea[1][1]])
+            boty = self.lxy[1] - boty
+            botCorner = ((np.array([botx,boty])/self.lxy)*np.flip(self.im.shape)).astype(int)
+            
+            self.im = napfit.plane_fit_2d(self.im,region=[topCorner,botCorner])
+            self.vmin, self.vmax = napfit.filter_sigma(self.im)                 # cmap saturation. 3 sigma by default
+        self.update()
+    
+    def cancelPlaneFit(self,event):
+        self.planeFitUnbind()
+        self.update()
+    
+    def _drawFitArea(self):
+        if(self.planeFitCursor == -1): return
+        self.ax.plot(self.curPlaneFitArea[0][0],self.curPlaneFitArea[0][1],'x',markersize=10,color='white')
+        if(self.planeFitCursor == 1):
+            w = abs(self.curPlaneFitArea[0][0] - self.curPlaneFitArea[1][0])
+            h = abs(self.curPlaneFitArea[0][1] - self.curPlaneFitArea[1][1])
+            topx = np.min([self.curPlaneFitArea[0][0],self.curPlaneFitArea[1][0]])
+            topy = np.min([self.curPlaneFitArea[0][1],self.curPlaneFitArea[1][1]])
+            topCorner = (topx,topy)
+            
+            rect = patches.Rectangle(topCorner, w, h, linewidth=2, edgecolor='white', facecolor='red',alpha=0.3)
+        
+            self.ax.add_patch(rect)
+            self.ax.plot(self.curPlaneFitArea[1][0],self.curPlaneFitArea[1][1],'x',markersize=10,color='white')
     ###########################################################################
     # Global alternate functions
     ###########################################################################

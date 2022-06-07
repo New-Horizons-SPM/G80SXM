@@ -73,6 +73,8 @@ class Panel():
             btn.grid_forget()
             
     def create(self):                                                           # Displays the panel to the right of the previous one
+        if(self.mainPanel):
+            if(not self.mainPanel.init): return
         if(self.active): return                                                 # Do nothing if the panel is already active
         self.pos = self.master.grid_size()[0]                                   # Position of the end of the last panel
         self.canvas.get_tk_widget().grid(row=0,column=self.pos, rowspan=4,columnspan=4) # Put this panel after the last one (left to right)
