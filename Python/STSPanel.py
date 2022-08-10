@@ -16,6 +16,8 @@ class STSPanel(Panel):
     datFile = []; stsPos = []; stsOffset = True                                 # list of .dat filenames. stspos: location of xy pos 
     logScale = False
     datFileCustom = []; customSTSPos = []
+    dat_xchannel = 'Bias calc (V)'
+    dat_ychannel = 'Current (A)'
     ###########################################################################
     # Constructor
     ###########################################################################
@@ -32,12 +34,23 @@ class STSPanel(Panel):
             "Custom":   tk.Button(self.master, text="Add Custom", command=self._browseCustom),
             "Offset":   tk.Button(self.master, text="Offset",     command=self._offset),
             "Scale":    tk.Button(self.master, text="Linear",     command=self._scale),
+            "Channel":  tk.Button(self.master, text="Current (A)",command=self._cycleChannel),
             "Undo":     tk.Button(self.master, text="Undo Last",  command=self._undo),
             "Reset":    tk.Button(self.master, text="Reset",      command=self._reset),
             "Inset":    tk.Button(self.master, text="Inset",      command=super().addInset),
             "Imprint":  tk.Button(self.master, text="Imprint",    command=super()._imprint),
             "Close":    tk.Button(self.master, text="Close",      command=self.destroy)
             }
+    def _cycleChannel(self):                                                    # Do this better but for now...
+        if(self.dat_ychannel == 'Current (A)'):
+            self.dat_ychannel = 'LI Demod 1 X (A)'
+        else:
+            self.dat_ychannel = 'Current (A)'
+        
+        self.btn['Channel'].configure(text=self.dat_ychannel)
+        
+        self.update()
+        
     ###########################################################################
     # Update and Plotting
     ###########################################################################
@@ -52,8 +65,8 @@ class STSPanel(Panel):
         self.canvas.draw()                                                      # Redraw the canvas with the updated figure
     
     def _plotSTS(self):
-        dat_xchannel = 'Bias calc (V)'
-        dat_ychannel = 'Current (A)'
+        # dat_xchannel = 'Bias calc (V)'
+        # dat_ychannel = 'Current (A)'
         sg_pts  = 7; sg_poly = 1; num_offset = 3                                # These will eventually be user input #todo
         max_val = 0; offset = 0; cnt = 0                                        # Loop variables
         
@@ -62,14 +75,19 @@ class STSPanel(Panel):
         for df in datFiles:                                                     # Loop through each .dat file, get the IV curve, take the derivative and plot a filtered version of dI/dV
             dat = nap.read.Spec(df)                                             # dat Spec object
             
-            V = dat.signals[dat_xchannel]
-            I = dat.signals[dat_ychannel]
+            V = dat.signals[self.dat_xchannel]
+            I = dat.signals[self.dat_ychannel]
+            
             dV = V[1] - V[0]
             
             didv = savgol(I,sg_pts,sg_poly,deriv=1,delta=dV)
             if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
-           
-            self.ax.plot(V,didv + cnt*offset,linewidth=1.3)
+            
+            if('demod' in self.dat_ychannel):
+                didv = savgol(I,sg_pts,sg_poly,deriv=0)
+                self.ax.plot(V,didv + cnt*offset,linewidth=1.3)
+            else:
+                self.ax.plot(V,didv + cnt*offset,linewidth=1.3)
            
             max_val = max(max_val,didv.max())
             if cnt == 0:                                                        # Only do this on the first iteration

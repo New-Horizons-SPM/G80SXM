@@ -47,6 +47,10 @@ class AIMLPanel(Panel):
             "striped_pole"  : tk.Button(self.master, text="unstable",   command=lambda: self.addLabel("striped_pole")),
             "chart"         : tk.Button(self.master, text="bad area",   command=lambda: self.addLabel("chart")),
             "poop"          : tk.Button(self.master, text="fire",       command=lambda: self.addLabel("poop")),
+            "AugFlip"       : tk.Button(self.master, text="AugFlip",    command=lambda: self.augmentType("AugFlip")),
+            "AugRot"        : tk.Button(self.master, text="AugRot",     command=lambda: self.augmentType("AugRot")),
+            "AugPlane"      : tk.Button(self.master, text="AugPlane",   command=lambda: self.augmentType("AugPlane")),
+            "AugNoise"      : tk.Button(self.master, text="AugRot",     command=lambda: self.augmentType("AugNoise")),
             "ExportFolder"  : tk.Button(self.master, text="Save Path",  command=self.savePath)
             }
     
@@ -61,7 +65,7 @@ class AIMLPanel(Panel):
         self.fig.axes.append(self.ax)
         
         image = self.loadedIm
-        if(not len(image)): image = self.mainPanel.finalim/1e-9
+        if(not len(image)): image = self.mainPanel.tiltedim/1e-9
         im = self.ax.imshow(image)
         divider = make_axes_locatable(self.ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -101,6 +105,37 @@ class AIMLPanel(Panel):
         self.mainPanel.loadSXM(nextFile)                                        # Load it in the main panel
     
     ###########################################################################
+    # Data Augmentation
+    ###########################################################################
+    def augmentType(self,augType):
+        if(augType in self.augTypes):
+            del self.augTypes[self.augTypes.index(augType)]
+            self.btn[augType].configure(bg="SystemButtonInterface")
+            return
+        self.augTypes.append(augType)
+        self.btn[augType].configure(bg="Red")
+    
+    def augment(self,im):
+        pass
+    
+    def augFlip(self,im):
+        flipVert = np.flipud(im)
+        flipHorz = np.fliplr(im)
+        flipBoth = np.flipud(flipHorz)
+        return [flipVert, flipHorz, flipBoth]
+    
+    def augRot(self,im):
+        rot90  = np.rot90(im)
+        rot180 = np.rot90(rot90)
+        rot270 = np.rot90(rot180)
+        return [rot90, rot180, rot270]
+    
+    def augPlane(self,im):
+        pass
+    def augNoise(self,im):
+        pass
+        
+    ###########################################################################
     # Labelling and Saving
     ###########################################################################
     def addLabel(self,label):
@@ -124,11 +159,12 @@ class AIMLPanel(Panel):
             return
         
         _,filename = os.path.split(self.mainPanel.filename)                     # Split the path and filename
-        imdata  = self.mainPanel.finalim.copy()
+        imdata  = self.mainPanel.tiltedim.copy()
         imdata -= np.min(imdata)
         imdata /= np.max(imdata)
         labelledData = {"filename" : filename,
                         "labels"   : self.labels,
+                        "size"     : self.mainPanel.lxy,
                         "Z (m)"    : imdata
                         }
         pickleFilename = self.exportPath + filename + ".pkl"

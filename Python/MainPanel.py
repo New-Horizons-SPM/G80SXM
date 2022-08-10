@@ -31,6 +31,7 @@ class MainPanel(Panel):
     init = False
     
     # Main Figure
+    plotChannel = 'Z'
     scaleBar = True; plotCaption = True
     mplibColours = ['black'] + plt.rcParams['axes.prop_cycle'].by_key()['color'] + ['white']
     
@@ -42,7 +43,8 @@ class MainPanel(Panel):
     
     # Tilt
     tiltActive= False
-    tiltFactor= 1e-14                                                           # tiltFactor will be user input eventually.
+    # tiltFactor= 1e-14                                                           # tiltFactor will be user input eventually.
+    tiltFactor= 100                                                             # tiltFactor will be user input eventually.
     curTilt   = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);                        # Tilt plane is defined by three points. curTilt keeps track of a tilt correction in progress
     tiltPlane = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);
     
@@ -98,14 +100,17 @@ class MainPanel(Panel):
             "Tilt":     tk.Button(self.master, text="Tilt",     command=self.tilt),                 # Button to tilt correct an image using arrow keys
             "PlaneFit": tk.Button(self.master, text="Plane Fit",command=self.planeFit),             # Button to plane fit an area and subtract from image (like tilt but auto)
             "Shift":    tk.Button(self.master, text="Shift",    command=self.toggleShiftL),         # Button to toggle shift mode
+            "Caption":  tk.Button(self.master, text="Caption",  command=self._toggleCaption),       # Toggle the plot caption
             "Profiles": tk.Button(self.master, text="Profiles", command=self.linePanel.create),     # Button to activate 1D Profiles panel
             "FFT":      tk.Button(self.master, text="FFT",      command=self.fftPanel.create),      # Button to activate FFT panel
             "STS":      tk.Button(self.master, text="STS",      command=self.stsPanel.create),      # Button to activate STS panel
             "Filter":   tk.Button(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
-            "AIML":     tk.Button(self.master, text="LabelMode",command=self.aimlPanel.create),          # Button to activate AI machine learning data labeler
+            "AIML":     tk.Button(self.master, text="LabelMode",command=self.aimlPanel.create),     # Button to activate AI machine learning data labeler
             "InsetCol": tk.Button(self.master, text="Inset Col",command=self._insetCmap),           # Change the inset font and line colours
             "RemInset": tk.Button(self.master, text="Rem Inset",command=self._removeInset),         # Remove the inset from main panel
             "FlipIm":   tk.Button(self.master, text="Flip scan",command=self._flipScan),            # Flip the current scan
+            "RotIm":    tk.Button(self.master, text="Rotate",   command=self._rotateScan),          # Flip the current scan
+            "Channel":  tk.Button(self.master, text="Z (m)",    command=self._channel),             # Flip the current scan
             "Save":     tk.Button(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
             "PNG":      tk.Button(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
             "Load":     tk.Button(self.master, text="Load",     command=self._load),                # Load a .g80 file
@@ -142,7 +147,9 @@ class MainPanel(Panel):
         self.canvas.draw()                                                      # Redraw the canvas with the updated figure
         
     def _updateSXM(self):
-        self.tiltedim = self.im + self._tiltPlane()                             # Adjust the raw image according to tilt correction
+        self.planeFitIm = self._planeFit(self.im)
+        
+        self.tiltedim = self.planeFitIm + self._tiltPlane()                     # Adjust the raw image according to tilt correction
         
         self.unfilteredIm = self.tiltedim
         
@@ -195,8 +202,7 @@ class MainPanel(Panel):
         self.im_offset -= self.lxy/2                         
         self.size = np.array(self.fig.get_size_inches()*self.fig.dpi)           # Figure size in pixels
         self.dxy = self.lxy/self.pxy                                            # Real size of each pixel on the figure (this is not the resolution of the actual data)
-        rawim = np.array(self.sxm.signals['Z']['forward'])                      # Raw sxm image. Take the forward scan by convention
-        # rawim = np.array(self.sxm.signals['OC_M1_Freq._Shift']['forward'])    # Raw sxm image. Take the forward scan by convention. 
+        rawim = np.array(self.sxm.signals[self.plotChannel]['forward'])         # Raw sxm image. Take the forward scan by convention
         rawim = np.nan_to_num(rawim,nan=np.nanmin(rawim))                       # nan to zero
         self.im = rawim - rawim.min()                                           # Set min value to zero
         
@@ -211,6 +217,8 @@ class MainPanel(Panel):
             self.vmax = np.max(self.finalim)
             
             self.tiltPlane = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]])            # Init tilt correct
+        
+        self.planeFitActive = False                                             # Init plane fit (need to move this into if(not load) statement after putting this in the g80 file)
         
         self.extent = (0, self.lxy[0], 0, self.lxy[1])                          # Real-space image boundaries
         
@@ -317,7 +325,7 @@ class MainPanel(Panel):
         
         if(vmin < np.min(self.finalim)): vmin = np.min(self.finalim)            # Cap vmin
         
-        if(vmin > med): vmin = med
+        if(vmin > self.vmax): vmin = self.vmax - abs(delta/2400)
         
         self.vmin = vmin
         
@@ -331,7 +339,7 @@ class MainPanel(Panel):
         
         if(vmax > 2*np.max(self.finalim)): vmax = 2*np.max(self.finalim)        # Cap vmax
         
-        if(vmax < med): vmax = med
+        if(vmax < self.vmin): vmax = self.vmin + abs(delta/2400)
         
         self.vmax = vmax
     ###########################################################################
@@ -403,6 +411,8 @@ class MainPanel(Panel):
         Y = super()._getY(y)
         
         cPos = np.array([X,Y])/self.lxy
+        cPos[cPos > 1] = 1
+        cPos[cPos < 0] = 0
         self.linePanel.setCursor(cPos)
         
         self.update(upd=[0,1])
@@ -613,6 +623,7 @@ class MainPanel(Panel):
     def _tiltPlane(self):
         # Calculate plane through three points. Taken from...
         # https://kitchingroup.cheme.cmu.edu/blog/2015/01/18/Equation-of-a-plane-through-three-points/
+        _range = abs(self.vmax - self.vmin)*self.lxy[0]
         p1 = self.curTilt[0]; p2 = self.curTilt[1]; p3 = self.curTilt[2];       # Three points that define the plane
         v1 = p3 - p1;   v2 = p2 - p1;                                           # Vectors in plane
         cp = np.cross(v1,v2)                                                    # Cross product
@@ -623,7 +634,7 @@ class MainPanel(Panel):
         y = np.linspace(0, len(self.im),len(self.im))
         X,Y = np.meshgrid(x,y)
         Z = np.array((d - a * X - b * Y) / c)                                   # Plane defined by points curTilt
-        return Z                                                                # Scale Factor
+        return Z*_range                                                         # Scale Factor
     
     def _tiltBind(self):
         self.canvas.get_tk_widget().focus_set()
@@ -717,9 +728,21 @@ class MainPanel(Panel):
             boty = self.lxy[1] - boty
             botCorner = ((np.array([botx,boty])/self.lxy)*np.flip(self.im.shape)).astype(int)
             
-            self.im = napfit.plane_fit_2d(self.im,region=[topCorner,botCorner])
-            self.vmin, self.vmax = napfit.filter_sigma(self.im)                 # cmap saturation. 3 sigma by default
+            self.planeFitBox = [topCorner,botCorner]
+            
+            self.curTilt   = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);
+            self.tiltPlane = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);
+            
+            self.planeFitActive = True
         self.update()
+    
+    def _planeFit(self,im):
+        if(not self.planeFitActive): return im
+        topCorner = self.planeFitBox[0]
+        botCorner = self.planeFitBox[1]
+        im = napfit.plane_fit_2d(im,region=[topCorner,botCorner])
+        # self.vmin, self.vmax = napfit.filter_sigma(self.im)                     # cmap saturation. 3 sigma by default
+        return im
     
     def cancelPlaneFit(self,event):
         self.planeFitUnbind()
@@ -745,7 +768,8 @@ class MainPanel(Panel):
     def toggleShiftL(self,event=[]):
         self.shiftL = not self.shiftL
         
-        self.tiltFactor = 1e-14*(19*self.shiftL + 1)                            # Here, shift toggles the tiltFactor
+        # self.tiltFactor = 1e-14*(19*self.shiftL + 1)                            # Here, shift toggles the tiltFactor
+        self.tiltFactor = (900*self.shiftL + 100)                               # Here, shift toggles the tiltFactor
         
         btnColour = ['SystemButtonFace','red']                                  # Highlight the shift button red when shift is active
         self.btn['Shift'].configure(bg = btnColour[self.shiftL])
@@ -861,8 +885,35 @@ class MainPanel(Panel):
     ###########################################################################
     # Misc
     ###########################################################################
+    def _toggleCaption(self):
+        self.plotCaption = not self.plotCaption
+        self.update(upd=[0])
+        
+    def _channel(self):
+        channels = list(self.sxm.signals.keys())
+        idx = channels.index(self.plotChannel) + 1
+        if(idx == len(channels)): idx = 0
+        self.plotChannel = channels[idx]
+        self.btn['Channel'].configure(text=self.plotChannel)
+        rawim = np.array(self.sxm.signals[self.plotChannel]['forward'])         # Raw sxm image. Take the forward scan by convention. 
+        rawim = np.nan_to_num(rawim,nan=np.nanmin(rawim))                       # nan to zero
+        self.im = rawim - rawim.min()                                           # Set min value to zero
+        
+        way  = self.sxm.header['scan_dir']                                      # Scan direction (up/down)
+        if way == 'up':                                                         # Invert image according to scan direction
+            self.im = np.flipud(self.im)
+        
+        self.update()
+        self.vmin = np.min(self.finalim)
+        self.vmax = np.max(self.finalim)
+        self.update(upd=[0])
+        
     def _flipScan(self):
         self.im = np.flipud(self.im)
+        self.update()
+    
+    def _rotateScan(self):
+        self.im = np.rot90(self.im)
         self.update()
         
     def quit(self):

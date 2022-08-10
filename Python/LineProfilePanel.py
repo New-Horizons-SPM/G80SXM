@@ -100,7 +100,7 @@ class LineProfilePanel(Panel):
             dz = abs(1/math.cos(theta))
             c  = p1[1] - m*p1[0]
             Ix = np.linspace(p1[0],p2[0],int(dz*(p2[0] - p1[0])))
-            Iy = sy - np.array(m*Ix + c).astype(int)
+            Iy = sy - np.array(m*Ix + c).astype(int) - 1
             Ix = Ix.astype(int)
             zx = im[Iy,Ix]/self.zunit                                               # Raw 1D cut through two points
             
