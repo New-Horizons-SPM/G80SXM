@@ -18,12 +18,14 @@ class STSPanel(Panel):
     datFileCustom = []; customSTSPos = []
     dat_xchannel = 'Bias calc (V)'
     dat_ychannel = 'Current (A)'
+    sg_pts = 3
     ###########################################################################
     # Constructor
     ###########################################################################
     def __init__(self, master, width, height, dpi, mainPanel):
         super().__init__(master, width, height, dpi, mainPanel=mainPanel)
         self.buttons()
+        
     ###########################################################################
     # Panel
     ###########################################################################
@@ -42,6 +44,18 @@ class STSPanel(Panel):
             "Imprint":  tk.Button(self.master, text="Imprint",    command=super()._imprint),
             "Close":    tk.Button(self.master, text="Close",      command=self.destroy)
             }
+        
+    def special(self):                                                          # Special canvas UI
+        self.slider = tk.Scale(self.master, orient=tk.HORIZONTAL, from_=0, to=5, length=420, command=self.smoothing) # Slider to select which bias/sweep signal slice to look show
+        self.slider.grid(row=8,column=self.pos,columnspan=4,rowspan=2,ipadx=32) # Make it take up the entire length of the panel
+    
+    def removeSpecial(self):
+        self.slider.grid_forget()                                               # Called when panel is closed
+      
+    def smoothing(self,event):
+        self.sg_pts = 2*int(event) + 1                                          # Change the bias on a slider event
+        self.update()                                                           # Update this panel and the STS panel (to show the vertical dashed line at selected bias)
+        
     def _cycleChannel(self):                                                    # Do this better but for now...
         if(self.dat_ychannel == 'Current (A)'):
             self.dat_ychannel = 'LI Demod 1 X (A)'
@@ -77,7 +91,10 @@ class STSPanel(Panel):
         
         offset = 0; cnt = 0; num_offset = 3; max_val = 0
         for s in spectra:
-            self.ax.plot(sweep,s + cnt*offset,linewidth=1.3)
+            ss = np.array(s)*1e9
+            if(self.logScale):
+                ss = np.log(ss); ss = ss - np.min(ss)
+            self.ax.plot(sweep,ss + cnt*offset,linewidth=1.3)
             max_val = max(max_val,s.max())
             if cnt == 0:                                                        # Only do this on the first iteration
                offset = num_offset*0.25*max_val*self.stsOffset                  # offset for the next curve
@@ -90,7 +107,7 @@ class STSPanel(Panel):
     def _plotSTS(self):
         # dat_xchannel = 'Bias calc (V)'
         # dat_ychannel = 'Current (A)'
-        sg_pts  = 7; sg_poly = 1; num_offset = 3                                # These will eventually be user input #todo
+        sg_poly = 1; num_offset = 3                                             # These will eventually be user input #todo
         max_val = 0; offset = 0; cnt = 0                                        # Loop variables
         
         datFiles = self.datFile.copy()
@@ -103,14 +120,17 @@ class STSPanel(Panel):
             
             dV = V[1] - V[0]
             
-            didv = savgol(I,sg_pts,sg_poly,deriv=1,delta=dV)
-            if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
+            if(self.sg_pts <= sg_poly):
+                self.sg_pts  = sg_poly + 1                                      # Window must be greater than poly order
+                self.sg_pts += int((self.sg_pts+1)%2)                           # Window must be odd
             
             if('Demod' in self.dat_ychannel):
-                didv = savgol(I,5,sg_poly,deriv=0)
+                didv = savgol(I,self.sg_pts,sg_poly,deriv=0)*1e9
                 if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
                 self.ax.plot(V,didv + cnt*offset,linewidth=1.3)
             else:
+                didv = savgol(I,self.sg_pts,sg_poly,deriv=1,delta=dV)*1e9
+                if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
                 self.ax.plot(V,didv + cnt*offset,linewidth=1.3)
            
             max_val = max(max_val,didv.max())
