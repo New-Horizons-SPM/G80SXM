@@ -108,6 +108,7 @@ class STSPanel(Panel):
             
             if('Demod' in self.dat_ychannel):
                 didv = savgol(I,5,sg_poly,deriv=0)
+                if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
                 self.ax.plot(V,didv + cnt*offset,linewidth=1.3)
             else:
                 self.ax.plot(V,didv + cnt*offset,linewidth=1.3)
