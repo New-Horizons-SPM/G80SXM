@@ -12,7 +12,8 @@ from LineProfilePanel import LineProfilePanel
 from FFTPanel import FFTPanel
 from STSPanel import STSPanel
 from FilterPanel import FilterPanel
-from AIMLPanel import AIMLPanel
+# from AIMLPanel import AIMLPanel
+from GridPanel import GridPanel
 import numpy as np
 import nanonispy as nap
 import nanonispyfit as napfit
@@ -87,7 +88,8 @@ class MainPanel(Panel):
         self.fftPanel  = FFTPanel(*commonParams)
         self.stsPanel  = STSPanel(*commonParams)
         self.fltPanel  = FilterPanel(*commonParams)
-        self.aimlPanel = AIMLPanel(*commonParams)
+        # self.aimlPanel = AIMLPanel(*commonParams)
+        self.gridPanel = GridPanel(*commonParams)
         
     def buttons(self):
         self.btn = {
@@ -105,7 +107,8 @@ class MainPanel(Panel):
             "FFT":      tk.Button(self.master, text="FFT",      command=self.fftPanel.create),      # Button to activate FFT panel
             "STS":      tk.Button(self.master, text="STS",      command=self.stsPanel.create),      # Button to activate STS panel
             "Filter":   tk.Button(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
-            "AIML":     tk.Button(self.master, text="LabelMode",command=self.aimlPanel.create),     # Button to activate AI machine learning data labeler
+            # "AIML":     tk.Button(self.master, text="LabelMode",command=self.aimlPanel.create),     # Button to activate AI machine learning data labeler
+            "Grid":     tk.Button(self.master, text="STSGrid",  command=self.gridPanel.create),     # Button to activate AI machine learning data labeler
             "InsetCol": tk.Button(self.master, text="Inset Col",command=self._insetCmap),           # Change the inset font and line colours
             "RemInset": tk.Button(self.master, text="Rem Inset",command=self._removeInset),         # Remove the inset from main panel
             "FlipIm":   tk.Button(self.master, text="Flip scan",command=self._flipScan),            # Flip the current scan
@@ -138,7 +141,11 @@ class MainPanel(Panel):
             self.stsPanel.update()
             
         if(-1 in upd or 4 in upd):
-            self.aimlPanel.update()
+            # self.aimlPanel.update()
+            pass
+            
+        if(-1 in upd or 5 in upd):
+            self.gridPanel.update()
             
         if(-1 in upd or 0 in upd):                                              # upd=0 selects mainPanel only
             self._updateOverlay()                                               # Add things to the foreground (e.g. scalebar and plot label)
@@ -166,6 +173,7 @@ class MainPanel(Panel):
         self._drawCursor()
         self._drawFitArea()
         self._drawMolecules()
+        self._drawGridBox()
         if(self.scaleBar): super().addPlotScalebar()                            # Add a scale bar to the plot
         if(self.plotCaption):                                                   # Caption the image with Vbias and Iset
             plotCaption  = r'V$_{bias}$ = '  + str(self.bias)    + ' V'         # Show bias in a box in the top left of the image
@@ -226,7 +234,8 @@ class MainPanel(Panel):
         
         ## Re-initialise panels that need it
         self.linePanel.init()
-        self.aimlPanel.init()
+        # self.aimlPanel.init()
+        self.gridPanel.init()
         
         self.update(upd=[-1])
     ###########################################################################
@@ -426,7 +435,7 @@ class MainPanel(Panel):
             
             customSTSPos = self.stsPanel.customSTSPos
             if(len(customSTSPos)):
-                self.ax.plot(customSTSPos[0],customSTSPos[1],'.',markersize=8)
+                self.ax.plot(customSTSPos[0],customSTSPos[1],'x',markersize=12)
                 
     def customSTSBind(self):
         self.lcMarkSTSBind     = self.canvas.get_tk_widget().bind('<Button-1>', self._setMarkSTS)
@@ -611,6 +620,22 @@ class MainPanel(Panel):
         self.molRotY  = self.molRotY[:-1]
         self.molPos   = self.molPos[:-1]
         self.update(upd=[0])
+        
+    ###########################################################################
+    # STS Grid Box
+    ###########################################################################
+    def _drawGridBox(self):
+        if(self.gridPanel.imprint or self.gridPanel.active):
+            if(not self.gridPanel.gridData): return
+            bbox = self.gridPanel.bbox
+            ox,oy = bbox['origin']
+            angle = bbox['angle']
+            r = patches.Rectangle(*bbox['bbox'],linewidth=2,edgecolor='black',facecolor='none')
+            transform  = matplotlib.transforms.Affine2D().rotate_deg_around(ox,oy,angle)
+            transform += self.ax.transData
+            r.set_transform(transform)
+            self.ax.add_patch(r)
+            
     ###########################################################################
     # Tilt Methods
     ###########################################################################

@@ -67,10 +67,14 @@ class Panel():
             if(col == numCols):
                 col  = 0
                 row += 1
-            
     def removeButtons(self):                                                    # Remove all the buttons after destroying the canvas
         for btn in self.btn.values():
             btn.grid_forget()
+
+    def special(self):
+        pass
+    def removeSpecial(self):
+        pass
             
     def create(self):                                                           # Displays the panel to the right of the previous one
         if(self.mainPanel):
@@ -79,6 +83,7 @@ class Panel():
         self.pos = self.master.grid_size()[0]                                   # Position of the end of the last panel
         self.canvas.get_tk_widget().grid(row=0,column=self.pos, rowspan=4,columnspan=4) # Put this panel after the last one (left to right)
         self.addButtons()                                                       # Display the buttons
+        self.special()
         self.active = True
         self.update()
         if(self.mainPanel): self.mainPanel.update()
@@ -86,6 +91,7 @@ class Panel():
     def destroy(self):                                                          # Hide this canvas, it's panel is not active anymore
         self.canvas.get_tk_widget().grid_forget()
         self.removeButtons()                                                    # Also hide the buttons
+        self.removeSpecial()
         self.active = False
         self.mainPanel.update()
     
