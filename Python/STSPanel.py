@@ -32,6 +32,7 @@ class STSPanel(Panel):
             "Multi":    tk.Button(self.master, text="Add Multi",  command=self._browseMulti),
             "Single":   tk.Button(self.master, text="Add Single", command=self._browseSingle),
             "Custom":   tk.Button(self.master, text="Add Custom", command=self._browseCustom),
+            "FromGrid": tk.Button(self.master, text="From Grid",  command=self._addFromGrid),
             "Offset":   tk.Button(self.master, text="Offset",     command=self._offset),
             "Scale":    tk.Button(self.master, text="Linear",     command=self._scale),
             "Channel":  tk.Button(self.master, text="Current (A)",command=self._cycleChannel),
@@ -56,14 +57,36 @@ class STSPanel(Panel):
     ###########################################################################
     def update(self):
         if(not self.mainPanel.init): return
+        if(not self.active): return
         
         self.ax.cla()                                                           # Clear the axis
+        self.plotSTSFromGrid()                                                  # Plot chosen spectra from Grid
         self._plotSTS()                                                         # Loops through .dat files, takes the derivative of IV curves and plot dI/dV
         self.ax.set_position([0.13, 0.1, 0.83, 0.83])                           # Leave room for axis labels and title
         
         self.canvas.figure = self.fig                                           # Assign the figure to the canvas
         self.canvas.draw()                                                      # Redraw the canvas with the updated figure
     
+    def plotSTSFromGrid(self):
+        if(not self.mainPanel.gridPanel.active):
+            if(not self.mainPanel.gridPanel.imprint):
+                return
+        
+        sweep,spectra = self.mainPanel.gridPanel.getPointSpectra()
+        if(not len(spectra)): return
+        
+        offset = 0; cnt = 0; num_offset = 3; max_val = 0
+        for s in spectra:
+            self.ax.plot(sweep,s + cnt*offset,linewidth=1.3)
+            max_val = max(max_val,s.max())
+            if cnt == 0:                                                        # Only do this on the first iteration
+               offset = num_offset*0.25*max_val*self.stsOffset                  # offset for the next curve
+            cnt += 1
+            
+        if(self.mainPanel.gridPanel.active):
+            Vb = self.mainPanel.gridPanel.getBias()
+            self.ax.axvline(x=Vb,linestyle='dashed',c='black')
+        
     def _plotSTS(self):
         # dat_xchannel = 'Bias calc (V)'
         # dat_ychannel = 'Current (A)'
@@ -178,6 +201,13 @@ class STSPanel(Panel):
         self.datFileCustom = []
         self.customSTSPos  = []
         self.update()
+    ###########################################################################
+    # Plot from location in STS Grid
+    ###########################################################################
+    def _addFromGrid(self):
+        if(self.mainPanel.gridPanel.active):
+            self.mainPanel.gridPanel.extractBind()
+        
     ###########################################################################
     # Misc Button Functions
     ###########################################################################
