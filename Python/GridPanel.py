@@ -88,7 +88,10 @@ class GridPanel(Panel):
         Y = self.gridData.signals[self.ychannel]
         Y = np.flipud(Y)
         cmap = self.cmaps[self.cmap][1]
-        self.ax.imshow(Y[:,:,self.bias], extent=self.extent,cmap=cmap())
+        im = Y[:,:,self.bias]
+        vmin = np.min(im[np.nonzero(im)])
+        vmax = np.max(im[np.nonzero(im)])
+        self.ax.imshow(im, extent=self.extent,cmap=cmap(),vmin=vmin,vmax=vmax)
     
     def updateOverlay(self):
         left, right = self.ax.get_xlim();                                       # Remember plot extent
@@ -191,7 +194,7 @@ class GridPanel(Panel):
             spectra.append(self.gridData.signals[self.ychannel][idx[1],idx[0],:]) # Append point spectra from desired locations
         
         sweep = self.gridData.signals['sweep_signal']                           # The signal swept during acquisition (typically bias)
-        return sweep,spectra
+        return copy.deepcopy(sweep),copy.deepcopy(spectra)
     
     def getGridIndexes(self):                                                   # This function converts real-space x,y coords into x,y array indicies
         lxy = np.array(self.gridData.header['size_xy'])
