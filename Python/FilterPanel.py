@@ -9,6 +9,8 @@ from Panel import Panel
 import tkinter as tk
 import numpy as np
 from scipy.signal import convolve2d
+from scipy import ndimage
+
 class FilterPanel(Panel):
     activeFilters = {"rollV" : 0,
                      "rollH" : 0}
@@ -29,6 +31,8 @@ class FilterPanel(Panel):
             "RollV-": tk.Button(self.master, text="Roll Vert -", command=lambda: self.updateFilter("rollV",-1)),
             "RollH+": tk.Button(self.master, text="Roll Horz +", command=lambda: self.updateFilter("rollH", 1)),
             "RollH-": tk.Button(self.master, text="Roll Horz -", command=lambda: self.updateFilter("rollH",-1)),
+            "HPF+":   tk.Button(self.master, text="High Pass +", command=lambda: self.updateFilter("HP",1)),
+            "HPF-":   tk.Button(self.master, text="High Pass -", command=lambda: self.updateFilter("HP",-1)),
             "SetFlt": tk.Button(self.master, text="Set Filter",  command=self.setFilter),
             "Close":  tk.Button(self.master, text="Close",       command=self.destroy)
             }
@@ -71,7 +75,8 @@ class FilterPanel(Panel):
     ###########################################################################
     def buildFilters(self):
         self.filters = {"rollV" : [0, lambda im: self.rollVert(im)],
-                        "rollH" : [0, lambda im: self.rollHorz(im)]}
+                        "rollH" : [0, lambda im: self.rollHorz(im)],
+                        "HP"    : [0, lambda im: self.highPass(im)]}
         self.activeFilters = self.filters.copy()
         
     def updateFilter(self,filtType,inc):
@@ -119,6 +124,11 @@ class FilterPanel(Panel):
        
     def rollHorz(self,im,p=1):
         return convolve2d(im, np.ones((1,2*p)) / 2 / p, mode='same')
+    
+    def highPass(self,im):                                                      # Gaussian hp filter taken from https://stackoverflow.com/questions/6094957/high-pass-filter-for-image-processing-in-python-by-using-scipy-numpy
+        lowpass = ndimage.gaussian_filter(im, 1)
+        gauss_highpass = im - lowpass
+        return gauss_highpass
     ###########################################################################
     # Save (WIP)
     ###########################################################################

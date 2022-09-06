@@ -113,7 +113,10 @@ class Panel():
                       2 : ['inferno',lambda : "inferno"],
                       3 : ['magma',  lambda : "magma"],
                       4 : ['cividis',lambda : "cividis"],
-                      5 : ['flame',  lambda : self.customCmap(cmap='flame')]
+                      5 : ['flame',  lambda : self.customCmap(cmap='flame')],
+                      6 : ['Greys',  lambda : "Greys"],
+                      7 : ['Blues',  lambda : "Blues"],
+                      8 : ['Purples',lambda : "Purples"]
                       }
         
     def _cmap(self):
