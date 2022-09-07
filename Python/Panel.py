@@ -5,7 +5,7 @@ Created on Fri Apr  8 18:56:27 2022
 @author: jced0001
 """
 
-# import tkinter as tk
+import tkinter as tk
 from tkinter import filedialog
 import numpy as np
 import math
@@ -20,7 +20,7 @@ class Panel():
     pos    = 0                                                                  # This panel's column position. init to zero. gets added to the RHS of the window when created
     active = False; cmap  = 0; shift = False                                    # Use alternate values - bound to the left shift key
     zunit = 1e-12; xunit = 1e-9                                                 # convert xy units to nm and z units to pm
-    
+    helpText = ""
     imprint  = False
     def __init__(self, master, width, height, dpi, mainPanel=None):
         self.master = master
@@ -62,7 +62,7 @@ class Panel():
         numCols = 4                                                             # We're displaying 4 buttons per row per panel
         row = 5; col = 0                                                        # Row=5 because rows 0-4 are taken up by the canvas
         for btn in self.btn.values():                                           # Now loop through each button and put it in the correct position. 4 per row
-            btn.grid(row=row,column=col+self.pos,ipadx=32)
+            btn.grid(row=row,column=col+self.pos,ipadx=0)
             col += 1
             if(col == numCols):
                 col  = 0
@@ -75,7 +75,18 @@ class Panel():
         pass
     def removeSpecial(self):
         pass
-            
+    
+    def _helpLabel(self):
+        self.helpLabel = tk.Label(self.master,text="",justify=tk.LEFT)
+        self.helpLabel.grid(row=12,column=self.pos,columnspan=4,rowspan=4)
+    
+    def removeHelpLabel(self):
+        self.helpLabel.grid_forget()
+    
+    def updateHelpLabel(self,helpText):
+        self.helpText = helpText
+        self.helpLabel.configure(text=helpText)
+        
     def create(self):                                                           # Displays the panel to the right of the previous one
         if(self.mainPanel):
             if(not self.mainPanel.init): return
@@ -84,6 +95,7 @@ class Panel():
         self.canvas.get_tk_widget().grid(row=0,column=self.pos, rowspan=4,columnspan=4) # Put this panel after the last one (left to right)
         self.addButtons()                                                       # Display the buttons
         self.special()
+        self._helpLabel()
         self.active = True
         self.update()
         if(self.mainPanel): self.mainPanel.update()
@@ -92,6 +104,7 @@ class Panel():
         self.canvas.get_tk_widget().grid_forget()
         self.removeButtons()                                                    # Also hide the buttons
         self.removeSpecial()
+        self.removeHelpLabel()
         self.active = False
         self.mainPanel.update()
     
@@ -114,9 +127,9 @@ class Panel():
                       3 : ['magma',  lambda : "magma"],
                       4 : ['cividis',lambda : "cividis"],
                       5 : ['flame',  lambda : self.customCmap(cmap='flame')],
-                      6 : ['Greys',  lambda : "Greys"],
-                      7 : ['Blues',  lambda : "Blues"],
-                      8 : ['Purples',lambda : "Purples"]
+                      6 : ['Greys',  lambda : "Greys_r"],
+                      7 : ['Blues',  lambda : "Blues_r"],
+                      8 : ['Purples',lambda : "Purples_r"]
                       }
         
     def _cmap(self):

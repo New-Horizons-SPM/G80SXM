@@ -36,6 +36,7 @@ class GridPanel(Panel):
         self.atoms = []                                                         # Initialise atoms variable (for plotting molecules/atoms on overlay)
         self.plotCaption = True                                                 # Show the plot caption by default
         self.scaleBar = True                                                    # Show a scale bar by default
+        self.bound = False                                                      # Flag to prevent binding two functions at once
         
     ###########################################################################
     # Panel
@@ -57,7 +58,7 @@ class GridPanel(Panel):
     
     def special(self):                                                          # Special canvas UI
         self.slider = tk.Scale(self.master, orient=tk.HORIZONTAL, from_=0, to=1, length=420, command=self.changeBias) # Slider to select which bias/sweep signal slice to look show
-        self.slider.grid(row=8,column=self.pos,columnspan=4,rowspan=2,ipadx=32) # Make it take up the entire length of the panel
+        self.slider.grid(row=8,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
         if(self.gridData):                                                      # Figure out how many ticks the slider needs. 1 tick = 1 dV
             to = len(self.gridData.signals['sweep_signal']) - 1
             self.slider.configure(to=to)
@@ -74,8 +75,14 @@ class GridPanel(Panel):
     ###########################################################################
     def update(self):
         if(not self.mainPanel.init): return
-        if(not self.gridData): return
+        if(not self.gridData):
+            self.updateHelpLabel("Start by loading a 3ds file")
+            return
         
+        if(self.helpText == ""):
+            if(not self.mainPanel.stsPanel.active):
+                self.updateHelpLabel("Open the STS Panel to further interact with the grid")
+            
         self.ax.cla()                                                           # Clear the axis
         self.plot()
         self.updateOverlay()
@@ -150,21 +157,30 @@ class GridPanel(Panel):
         to = len(self.gridData.signals['sweep_signal']) - 1                     # The index of the last sweep signal point
         self.slider.configure(to=to)                                            # Update the slider selector on the gui to cover index range of loaded 3ds file
         
+        self.updateHelpLabel("")
+        
         self.mainPanel.update(upd=[0,3,5])                                      # Update the main panel, sts panel, and this panel
         
     ###########################################################################
     # Extract point STS from grid
     ###########################################################################
     def extractBind(self):
+        if(self.bound): return
+        self.bound = True
         self.lcCursorBind     = self.canvas.get_tk_widget().bind('<Button-1>', self.addExtract)     # Bind the left click for adding a point
         self.rcCursorBind     = self.canvas.get_tk_widget().bind('<Button-3>', self.cancelExtract)  # Bind the right click for cancelling during selection
         self.motionCursorBind = self.canvas.get_tk_widget().bind('<Motion>', self.motionExtract)    # Bind the motion of the mouse for placing a point
-    
+        
+        self.updateHelpLabel("Select a pixel within the grid to plot its spectrum on the STS panel\nLeft click to select, right click to cancel")
+        
     def extractUnbind(self):                                                    # Unbind all controls
         self.canvas.get_tk_widget().unbind('<Button-1>', self.lcCursorBind)
         self.canvas.get_tk_widget().unbind('<Button-3>', self.rcCursorBind)
         self.canvas.get_tk_widget().unbind('<Motion>', self.motionCursorBind)
-    
+        self.bound = False
+        
+        self.updateHelpLabel("")
+        
     def addExtract(self,event):
         self.extractUnbind()                                                    # Unbind, we've just selected a point
         self.extractPos.append(self.currentExtractPos)                          # Add the location of the click to the list of extraction locations
