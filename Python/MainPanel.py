@@ -64,6 +64,7 @@ class MainPanel(Panel):
     
     # Misc
     piezoFactor=np.array([1,1])
+    bound = False
     ###########################################################################
     # Constructor
     ###########################################################################
@@ -93,7 +94,7 @@ class MainPanel(Panel):
         
     def buttons(self):
         self.btn = {
-            "Plot":     tk.Button(self.master, text="Plot",     command=self.loadSXM),              # Button to plot a new sxm
+            "Plot":     tk.Button(self.master, text="Load SXM", command=self.loadSXM),              # Button to plot a new sxm
             "DrawHAT":  tk.Button(self.master, text="HAT.xyz",  command=lambda: self.placeMolecule("../xyz/HAT.xyz")), # Button to place a HAT molecule
             "DrawDCA":  tk.Button(self.master, text="DCA.xyz",  command=lambda: self.placeMolecule("../xyz/DCA.xyz")), # Button to place a DCA molecule
             "DrawCu":   tk.Button(self.master, text="Cu.xyz",   command=lambda: self.placeMolecule("../xyz/Cu.xyz")),  # Button to place a Cu atom
@@ -123,31 +124,37 @@ class MainPanel(Panel):
     # Main Panel Updates
     ###########################################################################
     def update(self,upd=[-1]):
-        if(not self.init): return                                               # Get outta here if no sxm is loaded yet
+        if(not self.init):
+            self.updateHelpLabel("Click 'Load SXM' to get started")
+            return                                                              # Get outta here if no sxm is loaded yet
         
-        if(-1 in upd or 0 in upd):                                              # upd=0 selects mainPanel only
+        if(self.helpText == ""):
+            self.updateHelpLabel("Scroll over image to adjust contrast.\n"
+                                 + "Shift inactive: vmax\nShift active: vmin")
+            
+        if(-1 in upd or 0 in upd):                                              # upd=0 selects mainPanel
             self.ax.cla()                                                       # Clear the axis
             self._updateSXM()                                                   # Show the processed (tilt-corrected, filtered, etc.) sxm image
             self.ax.set_position([0, 0, 1, 1])                                  # Make it take up the whole canvas
             self.ax.axis('off')                                                 # Hide the axis
             
-        if(-1 in upd or 1 in upd and self.linePanel.active):                    # upd=1 selects lineProfile panel only
+        if((-1 in upd or 1 in upd) and self.linePanel.active):                  # upd=1 selects lineProfile panel
             self.linePanel.update()
             
-        if(-1 in upd or 2 in upd):                                              # upd=0 selects mainPanel only
+        if((-1 in upd or 2 in upd) and self.fftPanel.active):                   # upd=2 selects fftPanel
             self.fftPanel.update()
         
-        if(-1 in upd or 3 in upd):
+        if((-1 in upd or 3 in upd) and self.stsPanel.active):                   # upd=3 selects stsPanel
             self.stsPanel.update()
             
-        if(-1 in upd or 4 in upd):
+        if(-1 in upd or 4 in upd):                                              # upd=4 selects aimlPanel
             # self.aimlPanel.update()
             pass
             
-        if(-1 in upd or 5 in upd):
+        if((-1 in upd or 5 in upd) and self.gridPanel.active):                  # upd=5 selects gridPanel
             self.gridPanel.update()
             
-        if(-1 in upd or 0 in upd):                                              # upd=0 selects mainPanel only
+        if(-1 in upd or 0 in upd):                                              # upd=0 selects mainPanel. Update the overlay at the end, since other panels may contribute to the overlay
             self._updateOverlay()                                               # Add things to the foreground (e.g. scalebar and plot label)
         
         self.canvas.figure = self.fig                                           # Assign the figure to the canvas
@@ -237,6 +244,8 @@ class MainPanel(Panel):
         # self.aimlPanel.init()
         self.gridPanel.init()
         
+        self.updateHelpLabel("")
+        
         self.update(upd=[-1])
     ###########################################################################
     # Inset
@@ -266,6 +275,8 @@ class MainPanel(Panel):
         self.setInsetCmap()
         
     def _moveInsetBind(self,event):
+        if(self.bound): return
+        self.bound = True
         self.lcInsetBind     = self.canvas.get_tk_widget().bind('<Button-1>', self._moveInsetUnbind)
         self.motionInsetBind = self.canvas.get_tk_widget().bind('<Motion>', self._moveInsetPos)
         self.moveInsetActive = True
@@ -274,6 +285,7 @@ class MainPanel(Panel):
         self.canvas.get_tk_widget().unbind('<Button-1>', self.lcInsetBind)
         self.canvas.get_tk_widget().unbind('<Motion>', self.motionInsetBind)
         self.moveInsetActive = False
+        self.bound = False
       
     def _moveInsetPos(self, event):
         size = self.fig.get_size_inches()*self.fig.dpi                          # size in pixels
@@ -391,14 +403,20 @@ class MainPanel(Panel):
                                linewidth=linewidth,linestyle=linestyle)
         
     def cursorBind(self):
+        if(self.bound): return
+        self.bound = True
         self.lcCursorBind     = self.canvas.get_tk_widget().bind('<Button-1>', self._setCursor)
         self.motionCursorBind = self.canvas.get_tk_widget().bind('<Motion>', self._motionCursor)
-
+        
+        self.updateHelpLabel("Left click the image to position the cursor")
+        
     def _cursorUnbind(self):
         self.canvas.get_tk_widget().unbind('<Button-1>', self.lcCursorBind)
         self.canvas.get_tk_widget().unbind('<Motion>', self.motionCursorBind)
-        # self.activeCursor[0] = -1
-    
+        self.bound = False
+        
+        self.updateHelpLabel("")
+        
     def _setCursor(self, event):
         size = self.fig.get_size_inches()*self.fig.dpi                          # size in pixels
         x = event.x
@@ -438,14 +456,22 @@ class MainPanel(Panel):
                 self.ax.plot(customSTSPos[0],customSTSPos[1],'x',markersize=12)
                 
     def customSTSBind(self):
+        if(self.bound): return
+        self.bound = True
         self.lcMarkSTSBind     = self.canvas.get_tk_widget().bind('<Button-1>', self._setMarkSTS)
         self.rcMarkSTSBind     = self.canvas.get_tk_widget().bind('<Button-3>', self._cancelMarkSTS)
         self.motionMarkSTSBind = self.canvas.get_tk_widget().bind('<Motion>',   self._motionMarkSTS)
-    
+        
+        self.updateHelpLabel("Place the STS marker on the SXM image\n"
+                             + "Left click to place\mRight click to cancel")
+        
     def _customSTSUnbind(self):
         self.canvas.get_tk_widget().unbind('<Button-1>', self.lcMarkSTSBind)
         self.canvas.get_tk_widget().unbind('<Button-3>', self.rcMarkSTSBind)
         self.canvas.get_tk_widget().unbind('<Motion>',   self.motionMarkSTSBind)
+        self.bound = False
+        
+        self.updateHelpLabel("")
         
     def _cancelMarkSTS(self,event):
         self._customSTSUnbind()
@@ -485,6 +511,8 @@ class MainPanel(Panel):
         self._placeMoleculeBind()
         
     def _placeMoleculeBind(self):
+        if(self.bound): return
+        self.bound = True
         self.canvas.get_tk_widget().focus_set()
         self.lcMolBind       = self.canvas.get_tk_widget().bind('<Button-1>', self._setMolecule)
         self.rcMolBind       = self.canvas.get_tk_widget().bind('<Button-3>', self._cancelMolecule)
@@ -493,6 +521,11 @@ class MainPanel(Panel):
         self.rotMolDownBind  = self.canvas.get_tk_widget().bind('<Down>',     self._rotDownMolecule)
         self.rotMolRightBind = self.canvas.get_tk_widget().bind('<Right>',    self._rotRightMolecule)
         self.rotMolLeftBind  = self.canvas.get_tk_widget().bind('<Left>',     self._rotLeftMolecule)
+        
+        self.updateHelpLabel("Place atoms on the image\n"
+                             + "LR arrows course rotate around z, UD arrows fine rotate around z\n"
+                             + "Shift active: LR arrows rotate around x, UD arrows rotate around y\n"
+                             + "Left click to confirm, right click to cancel")
         
     def _placeMoleculeUnbind(self):
         self.canvas.get_tk_widget().unbind('<Button-1>',    self.lcMolBind)
@@ -504,6 +537,9 @@ class MainPanel(Panel):
         self.canvas.get_tk_widget().unbind('<Left>',        self.rotMolLeftBind)
         self.curMol = []
         self.curAtoms = []
+        self.bound = False
+        
+        self.updateHelpLabel("")
     
     def _rotUpMolecule(self,event):
         if(self.shiftL):
@@ -662,6 +698,8 @@ class MainPanel(Panel):
         return Z*_range                                                         # Scale Factor
     
     def _tiltBind(self):
+        if(self.bound): return
+        self.bound = True
         self.canvas.get_tk_widget().focus_set()
         self.lcTiltBind     = self.canvas.get_tk_widget().bind('<Button-1>',self._setTilt)     # Left click calls self._setTilt
         self.rcTiltBind     = self.canvas.get_tk_widget().bind('<Button-3>',self._cancelTilt)  # Right click bind
@@ -671,7 +709,11 @@ class MainPanel(Panel):
         self.leftTiltBind   = self.canvas.get_tk_widget().bind('<Left>',    self._leftTilt)    # Left arrow key bind
         self.tiltActive = True                                                  
         self.btn['Tilt'].configure(bg='Red')
-    
+        
+        self.updateHelpLabel("Use the arrow keys to tilt the image. Recommend openning the Profiles Panel\n"
+                             + "Shift inactive: fine tilt\nShift active: course tilt\n"
+                             + "Left click to confirm, right click to cancel")
+        
     def _tiltUnbind(self):
         self.canvas.get_tk_widget().unbind('<Button-1>',self.lcTiltBind)
         self.canvas.get_tk_widget().unbind('<Button-3>',self.rcTiltBind)
@@ -681,6 +723,9 @@ class MainPanel(Panel):
         self.canvas.get_tk_widget().unbind('<Left>',    self.leftTiltBind)
         self.tiltActive = False
         self.btn['Tilt'].configure(bg='SystemButtonFace')
+        self.bound = False
+        
+        self.updateHelpLabel("")
     
     def _upTilt(self,event=[]):
         self.curTilt[0][2] -= self.tiltFactor
@@ -714,17 +759,24 @@ class MainPanel(Panel):
         self.planeFitBind()
         
     def planeFitBind(self):
+        if(self.bound): return
+        self.bound = True
         self.lcPFBind       = self.canvas.get_tk_widget().bind('<Button-1>', self.setPlaneFitArea)
         self.rcPFBind       = self.canvas.get_tk_widget().bind('<Button-3>', self.cancelPlaneFit)
         self.motionPFBind   = self.canvas.get_tk_widget().bind('<Motion>',   self.placePlaneFitArea)
         self.curPlaneFitArea = [[0,0],[0,0]]
         self.planeFitCursor = 0
         
+        self.updateHelpLabel("Click at two locations on the image to highlight region to plane fit.")
+        
     def planeFitUnbind(self):
         self.canvas.get_tk_widget().unbind('<Button-1>',    self.lcPFBind)
         self.canvas.get_tk_widget().unbind('<Button-3>',    self.rcPFBind)
         self.canvas.get_tk_widget().unbind('<Motion>',      self.motionPFBind)
         self.planeFitCursor = -1
+        self.bound = False
+        
+        self.updateHelpLabel("")
         
     def placePlaneFitArea(self,event):
         size = self.fig.get_size_inches()*self.fig.dpi                          # size in pixels

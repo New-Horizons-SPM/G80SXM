@@ -13,7 +13,7 @@ import nanonispy as nap
 import math
 from scipy.signal import savgol_filter as savgol
 class STSPanel(Panel):
-    datFile = []; stsPos = []; stsOffset = True                                 # list of .dat filenames. stspos: location of xy pos 
+    datFile = []; stsPos = []; stsOffset = False                                # list of .dat filenames. stspos: location of xy pos 
     logScale = False
     datFileCustom = []; customSTSPos = []
     dat_xchannel = 'Bias calc (V)'
@@ -52,18 +52,11 @@ class STSPanel(Panel):
             }
            
     def special(self):                                                          # Special canvas UI
-        self.slider = tk.Scale(self.master, orient=tk.HORIZONTAL, from_=0, to=5, length=420, command=self.smoothing) # Slider to select which bias/sweep signal slice to look show
-        self.slider.grid(row=9,column=self.pos,columnspan=4,rowspan=2,ipadx=32) # Make it take up the entire length of the panel
+        self.slider = tk.Scale(self.master, orient=tk.HORIZONTAL, from_=0, to=9, length=420, command=self.smoothing) # Slider to select which bias/sweep signal slice to look show
+        self.slider.grid(row=9,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
 
     def removeSpecial(self):
         self.slider.grid_forget()                                               # Called when panel is closed
-
-    def smoothing(self,event):
-        self.sg_pts = 2*int(event) + 1                                          # Change the bias on a slider event
-        if(self.sg_pts <= self.sg_poly):
-            self.sg_pts  = self.sg_poly + 1                                     # Window must be greater than poly order
-            self.sg_pts += int((self.sg_pts+1)%2)                               # Window must be odd 
-        self.update()                                                           # Update this panel and the STS panel (to show the vertical dashed line at selected bias)
         
     ###########################################################################
     # Update and Plotting
@@ -99,8 +92,9 @@ class STSPanel(Panel):
         
         offset = 0; cnt = 0; num_offset = 3; max_val = 0
         for s in spectra:
-            if(len(self.reference[0]) == len(s) and self.removeRef):
-                s -= self.reference[1]
+            if(self.removeRef):
+                reference = self.getReferenceForCurve(x=sweep)
+                s -= reference
                 
             self.ax.plot(sweep,s + cnt*offset,linewidth=1.3)
             max_val = max(max_val,s.max())
@@ -121,8 +115,9 @@ class STSPanel(Panel):
             
         for df in datFiles:                                                     # Loop through each .dat file, get the IV curve, take the derivative and plot a filtered version of dI/dV
             V, didv = self.getDIDV(df)
-            if(len(self.reference[0]) == len(didv) and self.removeRef):
-                didv -= self.reference[1]
+            if(self.removeRef):
+                reference = self.getReferenceForCurve(x=V)
+                didv -= reference
                 
             self.ax.plot(V,didv + cnt*offset,linewidth=1.3)
            
@@ -134,7 +129,39 @@ class STSPanel(Panel):
         self.ax.set_xlabel("Bias (V)")
         self.ax.set_ylabel(["dI/dV (arb)","log(dI/dV) (arb)"][self.logScale]);
         self.ax.set_title("Point Spectroscopy")
+        
+    ###########################################################################
+    # Data
+    ###########################################################################
+    def getDIDV(self,datFile="",curve=[]):
+        V = 0; didv = 0
+        if(datFile):
+            dat = nap.read.Spec(datFile)
+            V = dat.signals[self.dat_xchannel]
+            I = dat.signals[self.dat_ychannel]
+        elif(len(curve)):
+            V = curve[0]
+            I = curve[1]
+        else:
+            return V,didv
+        
+        dV = V[1] - V[0]
+        
+        didv = savgol(I,self.sg_pts,self.sg_poly,deriv=1,delta=dV)
+        if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
+        
+        if('Demod' in self.dat_ychannel):
+            didv = savgol(I,self.sg_pts,self.sg_poly,deriv=0)
+            if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
+        
+        return V,didv
     
+    def smoothing(self,event):
+        self.sg_pts = 2*int(event) + 1                                          # Change the bias on a slider event
+        if(self.sg_pts <= self.sg_poly):
+            self.sg_pts  = self.sg_poly + 1                                     # Window must be greater than poly order
+            self.sg_pts += int((self.sg_pts+1)%2)                               # Window must be odd 
+        self.update()                                                           # Update this panel and the STS panel (to show the vertical dashed line at selected bias)
     ###########################################################################
     # STS Reference
     ###########################################################################
@@ -159,6 +186,31 @@ class STSPanel(Panel):
         if(not self.referencePath):
             self.showRef = False
         self.update()
+    
+    def getReferenceForCurve(self,x):
+        """
+        This function is useful when the reference spectra is not exactly the 
+        same range/number of points as the data. To return a valid reference, 
+        the domain of the data must be within the domain of the refernce.
+        Simple linear interpolation is used when the number of data points is
+        greater than the number of points in the reference spectrum in the 
+        overlapping region
+        """
+        if(not self.referencePath): return 0
+        # if(np.min(self.reference[0]) > np.min(x)): return 0                     # Data must lie within the reference domain
+        # if(np.max(self.reference[0]) < np.max(x)): return 0                     # Data must lie within the reference domain
+        
+        # startV = np.min(curve[0])
+        # endV   = np.max(curve[0])
+        
+        # startRef = np.argmin(np.abs(self.reference[0] - startV))
+        # endRef   = np.argmin(np.abs(self.reference[0] - endV))
+        
+        try:
+            return np.interp(x, self.reference[0], self.reference[1])
+        except Exception as e:
+            print(e)
+            return 0
         
     ###########################################################################
     # Browsing STS Files
@@ -269,6 +321,7 @@ class STSPanel(Panel):
     
     def _offset(self):
         self.stsOffset = not self.stsOffset
+        self.btn['Offset'].configure(bg=['SystemButtonFace','red'][self.stsOffset])
         self.update()
         
     def _cycleChannel(self):                                                    # Do this better but for now...
@@ -281,29 +334,6 @@ class STSPanel(Panel):
         
         self.update()
         
-    def getDIDV(self,datFile="",curve=[]):
-        V = 0; didv = 0
-        if(datFile):
-            dat = nap.read.Spec(datFile)
-            V = dat.signals[self.dat_xchannel]
-            I = dat.signals[self.dat_ychannel]
-        elif(len(curve)):
-            V = curve[0]
-            I = curve[1]
-        else:
-            return V,didv
-        
-        dV = V[1] - V[0]
-        
-        didv = savgol(I,self.sg_pts,self.sg_poly,deriv=1,delta=dV)
-        if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
-        
-        if('Demod' in self.dat_ychannel):
-            didv = savgol(I,self.sg_pts,self.sg_poly,deriv=0)
-            if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
-        
-        return V,didv
-    
     ###########################################################################
     # Save (WIP)
     ###########################################################################
