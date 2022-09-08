@@ -12,6 +12,7 @@ import os
 import nanonispy as nap
 import math
 from scipy.signal import savgol_filter as savgol
+import matplotlib.patheffects as patheffects
 class STSPanel(Panel):
     datFile = []; stsPos = []; stsOffset = False                                # list of .dat filenames. stspos: location of xy pos 
     logScale = False
@@ -38,6 +39,7 @@ class STSPanel(Panel):
             "Single":   tk.Button(self.master, text="Add Single", command=self._browseSingle),
             "Custom":   tk.Button(self.master, text="Add Custom", command=self._browseCustom),
             "FromGrid": tk.Button(self.master, text="From Grid",  command=self._addFromGrid),
+            "AvgGrid":  tk.Button(self.master, text="Avg Grid",   command=self.avgFromGrid),
             "Offset":   tk.Button(self.master, text="Offset",     command=self._offset),
             "Scale":    tk.Button(self.master, text="Linear",     command=self._scale),
             "Ref":      tk.Button(self.master, text="Load Ref",   command=self.loadReference),
@@ -68,6 +70,7 @@ class STSPanel(Panel):
         self.ax.cla()                                                           # Clear the axis
         self.plotReference()
         self.plotSTSFromGrid()                                                  # Plot chosen spectra from Grid
+        self.plotAveragedSTSFromGrid()                                          # Plot curves corresponding to averaged points on the grid
         self._plotSTS()                                                         # Loops through .dat files, takes the derivative of IV curves and plot dI/dV
         self.ax.set_position([0.13, 0.1, 0.83, 0.83])                           # Leave room for axis labels and title
         
@@ -104,8 +107,34 @@ class STSPanel(Panel):
             
         if(self.mainPanel.gridPanel.active):
             Vb = self.mainPanel.gridPanel.getBias()
-            self.ax.axvline(x=Vb,linestyle='dashed',c='black')
+            self.ax.axvline(x=Vb,linestyle='dashed',c='black',linewidth=0.9)
+    
+    def plotAveragedSTSFromGrid(self):
+        if(not self.mainPanel.gridPanel.active):
+            if(not self.mainPanel.gridPanel.imprint):
+                return
+        curve = self.mainPanel.gridPanel.getAveragedPointSpectra()
+        if(not len(curve[1])): return
+        sweep,spectra = self.getDIDV(curve=curve)
         
+        offset = 0; cnt = 0; num_offset = 3; max_val = 0
+        for idx,s in enumerate(spectra):
+            if(self.removeRef):
+                reference = self.getReferenceForCurve(x=sweep)
+                s -= reference
+                
+            c = self.mainPanel.mplibColours[idx+1]                              #+1 because I don't wanna start from black
+            self.ax.plot(sweep,s + cnt*offset,linewidth=1.3,c=c,path_effects=[patheffects.withTickedStroke(angle=60, length=0.25)])
+            
+            max_val = max(max_val,s.max())
+            if cnt == 0:                                                        # Only do this on the first iteration
+               offset = num_offset*0.25*max_val*self.stsOffset                  # offset for the next curve
+            cnt += 1
+            
+        if(self.mainPanel.gridPanel.active):
+            Vb = self.mainPanel.gridPanel.getBias()
+            self.ax.axvline(x=Vb,linestyle='dashed',c='black')
+    
     def _plotSTS(self):
         num_offset = 3                                                          # These will eventually be user input #todo
         max_val = 0; offset = 0; cnt = 0                                        # Loop variables
@@ -197,15 +226,6 @@ class STSPanel(Panel):
         overlapping region
         """
         if(not self.referencePath): return 0
-        # if(np.min(self.reference[0]) > np.min(x)): return 0                     # Data must lie within the reference domain
-        # if(np.max(self.reference[0]) < np.max(x)): return 0                     # Data must lie within the reference domain
-        
-        # startV = np.min(curve[0])
-        # endV   = np.max(curve[0])
-        
-        # startRef = np.argmin(np.abs(self.reference[0] - startV))
-        # endRef   = np.argmin(np.abs(self.reference[0] - endV))
-        
         try:
             return np.interp(x, self.reference[0], self.reference[1])
         except Exception as e:
@@ -299,6 +319,13 @@ class STSPanel(Panel):
     def _addFromGrid(self):
         if(self.mainPanel.gridPanel.active):
             self.mainPanel.gridPanel.extractBind()
+        
+    ###########################################################################
+    # Average spectra from points within grid
+    ###########################################################################
+    def avgFromGrid(self):
+        if(self.mainPanel.gridPanel.active):
+            self.mainPanel.gridPanel.averageGridPointsBind()
         
     ###########################################################################
     # Misc Button Functions

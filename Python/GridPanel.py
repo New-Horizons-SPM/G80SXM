@@ -32,6 +32,9 @@ class GridPanel(Panel):
         self.ychannel = 'LI Demod 1 X (A)'                                      # Default channel is the demod channel for now
         self.currentExtractPos = []                                             # x,y coorinates of the point spectra we with to extract while moving the mouse
         self.extractPos = []                                                    # Array of x,y coordinates within the grid to extract point spectra from
+        self.currentAveragedPointsPos = []                                      # Array of x,y coordinates within the grid to extract and average spectra from
+        self.averagedPointsPos = []                                             # List of arrays containing x,y coordinates within the grid to extract and average spectra from
+        self.showAllAveragedPoints = True
         self.bias = []                                                          # Contains the index of the bias/sweep signal slice
         self.atoms = []                                                         # Initialise atoms variable (for plotting molecules/atoms on overlay)
         self.plotCaption = True                                                 # Show the plot caption by default
@@ -47,7 +50,8 @@ class GridPanel(Panel):
             "cmap":     tk.Button(self.master, text="viridis",    command=super()._cmap),           # Button to cycle through colour maps
             "Inset":    tk.Button(self.master, text="Inset",      command=super().addInset),        # Inset this into the main panel
             "Imprint":  tk.Button(self.master, text="Imprint",    command=super()._imprint),        # Imprint the spectra on STS panel
-            "Undo":     tk.Button(self.master, text="Undo Last",  command=self._undo),              # Undo the last point spectra on STS panel
+            "UndoPt":   tk.Button(self.master, text="Undo Point", command=self._undo),              # Undo the last point spectra on STS panel
+            "UndoAvg":  tk.Button(self.master, text="Undo Avg",   command=self.undoAverage),        # Undo the last point spectra on STS panel
             "Reset":    tk.Button(self.master, text="Reset",      command=self._reset),             # Remove all point spectra from STS panel
             "PullMol":  tk.Button(self.master, text="Pull Mol",   command=self.pullMolecules),      # Pull in molecules plotted on the main panel
             "ClearMol": tk.Button(self.master, text="Clear Mol",  command=self.clearMolecules),     # Clear all molecules from grid overlay
@@ -105,6 +109,7 @@ class GridPanel(Panel):
         bottom, top = self.ax.get_ylim();                                       # Remember plot extent
         self.plotMolecules()
         self.markExtractions()                                                  # Mark locations where point spectra have been extracted
+        self.markAveragedExtractions()                                          # Mark locations where the point spectra are being averaged
         if(self.scaleBar): super().addPlotScalebar()                            # Add a scale bar to the plot
         if(self.plotCaption):                                                   # Caption the image with Vbias and Iset
             plotCaption  = r'V$_{bias}$ = '  + "{:.3f}".format(self.getBias()) + ' V' # Show bias in a box in the top left of the image
@@ -127,6 +132,18 @@ class GridPanel(Panel):
         
         if(len(self.currentExtractPos)):
             self.ax.plot(self.currentExtractPos[0],self.currentExtractPos[1],'x',markersize=12) # Plot a cross at the cursor position when selecting a point
+    
+    def markAveragedExtractions(self):
+        idx = 0
+        for idx,points in enumerate(self.averagedPointsPos):
+            c = self.mainPanel.mplibColours[idx+1]                              #+1 because I don't wanna start from black
+            for marker in points:
+                self.ax.plot(marker[0],marker[1],'x',markersize=12,c=c)
+                if(not self.showAllAveragedPoints): break                       # Quit the loop after the first point if we're not meant to be marking all locations
+        
+        c = self.mainPanel.mplibColours[idx+2]                                  # Go to the next colour for points currently being placed
+        for marker in self.currentAveragedPointsPos:
+            self.ax.plot(marker[0],marker[1],'x',markersize=12,c=c)
             
     def load3ds(self):
         path,filename = ntpath.split(self._browseFile())                        # Open file dialog to browse for a 3ds file
@@ -212,6 +229,19 @@ class GridPanel(Panel):
         sweep = self.gridData.signals['sweep_signal']                           # The signal swept during acquisition (typically bias)
         return copy.deepcopy(sweep),copy.deepcopy(spectra)
     
+    def getAveragedPointSpectra(self):
+        if(not self.gridData): return [],[]                                     # If we're here, we haven't loaded a 3ds file yet
+        indexList = self.getAveragedGridIndexes()
+        spectra = []
+        sweep = self.gridData.signals['sweep_signal']                           # The signal swept during acquisition (typically bias)
+        for indexes in indexList:
+            averagedSpectrum = 0*sweep
+            for idx in indexes:
+                averagedSpectrum += self.gridData.signals[self.ychannel][idx[1],idx[0],:]
+            spectra.append(averagedSpectrum/len(indexes))
+        
+        return copy.deepcopy(sweep),copy.deepcopy(spectra)
+    
     def getGridIndexes(self):                                                   # This function converts real-space x,y coords into x,y array indicies
         lxy = np.array(self.gridData.header['size_xy'])
         indexes = []
@@ -227,7 +257,58 @@ class GridPanel(Panel):
             indexes.append(np.array([x_idx,y_idx]))
             
         return indexes
+    
+    def getAveragedGridIndexes(self):                                           # This function converts real-space x,y coords into x,y array indicies
+        lxy = np.array(self.gridData.header['size_xy'])
+        indexList = []
+        for points in self.averagedPointsPos:                                   # Do this for all the previously selected points
+            indexes = []
+            for pos in points:
+                x_idx = int((pos[0]/lxy[0]) * self.gridData.header['dim_px'][0])
+                y_idx = int((pos[1]/lxy[1]) * self.gridData.header['dim_px'][1])
+                indexes.append(np.array([x_idx,y_idx]))
+            indexList.append(copy.deepcopy(indexes))
+        
+        # if(len(self.currentExtractPos)):                                        # And also the mouse is hovering over, if we're currently choosing a point
+        #     pos = self.currentExtractPos
+        #     x_idx = int((pos[0]/lxy[0]) * self.gridData.header['dim_px'][0])
+        #     y_idx = int((pos[1]/lxy[1]) * self.gridData.header['dim_px'][1])
+        #     indexes.append(np.array([x_idx,y_idx]))
             
+        return indexList
+        
+    ###########################################################################
+    # Average several spectra from points within grid
+    ###########################################################################
+    def averageGridPointsBind(self):
+        if(self.bound): return
+        self.bound = True
+        self.lcCursorBind     = self.canvas.get_tk_widget().bind('<Button-1>', self.addGridPointToAverage)  # Bind the left click for adding a point
+        self.rcCursorBind     = self.canvas.get_tk_widget().bind('<Button-3>', self.finishAveraging)        # Bind the right click for cancelling during selection
+        self.motionCursorBind = self.canvas.get_tk_widget().bind('<Motion>',   self.motionExtract)          # Bind the motion of the mouse for placing a point (uses the function from extracting single grid points)
+        
+        self.updateHelpLabel("Select a group of pixels within the grid to plot their averaged spectra on the STS panel\nLeft click to select, right click within the grid to finish")
+        
+    def averageGridPointsUnbind(self):                                             # Unbind all controls
+        self.canvas.get_tk_widget().unbind('<Button-1>', self.lcCursorBind)
+        self.canvas.get_tk_widget().unbind('<Button-3>', self.rcCursorBind)
+        self.canvas.get_tk_widget().unbind('<Motion>', self.motionCursorBind)
+        self.bound = False
+        
+        self.updateHelpLabel("")
+        
+    def addGridPointToAverage(self,event):
+        self.currentAveragedPointsPos.append(self.currentExtractPos)            # Add the location of the click to the list of extraction locations we're currently building
+        self.currentExtractPos = []                                             # Clear the buffer used when placing a point at the cursor location
+        self.mainPanel.update(upd=[3,5])                                        # Update the sts panel and this panel
+    
+    def finishAveraging(self,event):
+        self.extractUnbind()                                                    # Unbind, we've cancelled placement of this marker
+        self.averagedPointsPos.append(self.currentAveragedPointsPos)            # This collection of points become averaged into a single spectra
+        self.currentExtractPos = []                                             # Clear buffer
+        self.currentAveragedPointsPos = []                                      # Clear buffer
+        self.mainPanel.update(upd=[3,5])                                        # Update sts panel and this panel
+        
     ###########################################################################
     # Pull Molecules from main panel
     ###########################################################################
@@ -264,7 +345,13 @@ class GridPanel(Panel):
         if(len(self.extractPos)):
             self.extractPos.pop()                                               # Pop the last spectra off the back of the list to undo
             self.mainPanel.update(upd=[3,5])
-    
+            
+    def undoAverage(self):
+        if(len(self.averagedPointsPos)):
+            self.averagedPointsPos.pop()
+            self.mainPanel.update(upd=[3,5])
+            
     def _reset(self):
         self.extractPos = []                                                    # Clear all the spectra we've selected
+        self.averagedPointsPos = []
         self.mainPanel.update(upd=[3,5])
