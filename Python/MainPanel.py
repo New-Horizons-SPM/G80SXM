@@ -217,6 +217,17 @@ class MainPanel(Panel):
         self.im_offset -= self.lxy/2                         
         self.size = np.array(self.fig.get_size_inches()*self.fig.dpi)           # Figure size in pixels
         self.dxy = self.lxy/self.pxy                                            # Real size of each pixel on the figure (this is not the resolution of the actual data)
+        
+        channelList = self._channel(getChannels=True)                           # Get the list of recorded channels for this SXM
+        if(not self.plotChannel in channelList):                                # If the current selected channel is not recorded in this file...
+            self.plotChannel = channelList[0]                                   # Default the channel to the first one in the list if...
+            for c in channelList:
+                if('Z' in c):                                                   # ...we don't find one containing Z
+                    self.plotChannel = c                                        # If we do find a channel containing Z, default to this one
+                    break
+        
+        self.btn['Channel'].configure(text=self.plotChannel)                    # Set the button text to channel name
+        
         rawim = np.array(self.sxm.signals[self.plotChannel]['forward'])         # Raw sxm image. Take the forward scan by convention
         rawim = np.nan_to_num(rawim,nan=np.nanmin(rawim))                       # nan to zero
         self.im = rawim - rawim.min()                                           # Set min value to zero
@@ -966,8 +977,9 @@ class MainPanel(Panel):
         self.plotCaption = not self.plotCaption
         self.update(upd=[0])
         
-    def _channel(self):
+    def _channel(self,getChannels=False):
         channels = list(self.sxm.signals.keys())
+        if(getChannels): return channels
         idx = channels.index(self.plotChannel) + 1
         if(idx == len(channels)): idx = 0
         self.plotChannel = channels[idx]
