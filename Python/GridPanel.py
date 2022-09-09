@@ -116,15 +116,22 @@ class GridPanel(Panel):
             offset  = self.gridData.header['dim_px'][1]
             offset /= self.gridData.header['dim_px'][0]
             offset  = 1 - offset
-            offset /= 10
-            if(offset < 0): offset = 1
+            offset /= 10                                                        # Add a smal offset to the plot caption to keep it within the image, when the image is wider than it is tall
+            if(offset < 0): offset = 0                                          # Don't want the plot caption to start creeping over the top of the image
             pos = [0.025*self.extent[1],(0.94-offset)*self.extent[3]]           # Put the caption in the top left
-            super().addPlotCaption(plotCaption, pos)
+            super().addPlotCaption(plotCaption, pos)                            # Add the caption to the plot
         self.ax.set_xlim((left,right)); self.ax.set_ylim((bottom,top))          # Put back extent
         
     def plotMolecules(self):
         for m in self.atoms:
-            plot_atoms(m, self.ax, radii=0.5e-10)                               # Plot this molecule
+            pop = []
+            for idx,a in enumerate(m.positions):
+                if(a[0] < 0 or a[1] < 0):                                       # Weird thing happens when plotting a molecule and some/all atoms are out of the image extent
+                    pop.append(idx)                                             # so find any atoms outside image area
+            
+            for p in np.flip(pop):
+                m.pop(p)                                                        # and get rid of them (in reverse order so indexes don't change)
+            if(len(m)): plot_atoms(m, self.ax, radii=0.5e-10)                   # Plot this molecule if there are any atoms left
                 
     def markExtractions(self):
         for marker in self.extractPos:
