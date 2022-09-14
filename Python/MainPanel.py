@@ -675,10 +675,10 @@ class MainPanel(Panel):
         if(self.gridPanel.imprint or self.gridPanel.active):
             if(not self.gridPanel.gridData): return
             bbox = self.gridPanel.bbox
-            ox,oy = bbox['origin']
-            angle = bbox['angle']
+            x,y = bbox['origin']
+            angle = bbox['angle'] + self.scanAngle
             r = patches.Rectangle(*bbox['bbox'],linewidth=2,edgecolor='black',facecolor='none')
-            transform  = matplotlib.transforms.Affine2D().rotate_deg_around(ox,oy,angle)
+            transform  = matplotlib.transforms.Affine2D().rotate_deg_around(x,y,angle)
             transform += self.ax.transData
             r.set_transform(transform)
             self.ax.add_patch(r)
