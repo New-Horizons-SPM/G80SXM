@@ -96,8 +96,7 @@ class GridPanel(Panel):
         self.canvas.draw()                                                      # Redraw the canvas with the updated figure
     
     def plot(self):
-        Y = self.gridData.signals[self.ychannel]
-        Y = np.flipud(Y)
+        Y = np.flipud(self.data[1])
         cmap = self.cmaps[self.cmap][1]
         im = Y[:,:,self.bias]
         vmin = np.min(im[np.nonzero(im)])
@@ -168,13 +167,22 @@ class GridPanel(Panel):
         lxy = np.array(self.gridData.header['size_xy'])                         # Length by width in real space (m)
         self.extent = np.array([0,lxy[0],0,lxy[1]])                             # Extent of the data for plotting
         
-        ox,oy = np.array(self.gridData.header['pos_xy']) - self.mainPanel.im_offset # Origin of the grid w.r.t the origin of the main panel in real space (m)
-        origin = [ox,oy]
-        ox = ox - lxy[0]/2                                                      # x origin of the bbox starts from the bottom left corner of the rectangle, not the middle
-        oy = oy - lxy[1]/2                                                      # y origin of the bbox starts from the bottom left corner of the rectangle, not the middle
-        self.bbox = {"bbox"   : [(ox,oy),lxy[0],lxy[1]],
-                     "angle"  : -self.gridData.header['angle'],
-                     "origin" : origin}                                         # Outline of the grid w.r.t the sxm TOPO
+        # Trig shit
+        scanAngle = math.pi*self.mainPanel.scanAngle/180                        # Angle of the scan frame in radians
+                                                                                # Take the bottom left corner of the scan frame as the 'origin'
+        OA = self.mainPanel.lxy/2                                               # Vector from origin to centre of scan frame
+        
+        AB = np.array(self.gridData.header['pos_xy']) - np.array(self.mainPanel.sxm.header['scan_offset']) # Vector from centre of scan frame to centre of grid
+        AB = np.array(self.rotate([0,0],AB,scanAngle))                          # Rotate this vector about 0,0 to get it in the same basis as scan frame
+        
+        C = -lxy/2                                                              # Vector from centre of grid to bottom left corner of grid
+        
+        V = OA + AB + C                                                         # Vector from bottom left corner of scan frame to bottom left corner of grid
+        ox,oy = V
+        origin = OA + AB                                                        # Vector from bottom left of scan frame to centre of grid
+        self.bbox = {"bbox"   : [V,lxy[0],lxy[1]],
+                     "origin" : origin,
+                     "angle"  : -self.gridData.header['angle']}                 # Outline of the grid w.r.t the sxm TOPO
         
         self.bias = 0                                                           # Reset the bias/sweep signal index upon load
         
@@ -182,7 +190,9 @@ class GridPanel(Panel):
         self.slider.configure(to=to)                                            # Update the slider selector on the gui to cover index range of loaded 3ds file
         
         self.updateHelpLabel("")
-        
+        self.data = []
+        self.data.append(self.gridData.signals['sweep_signal'])
+        self.data.append(copy.deepcopy(self.gridData.signals[self.ychannel]))
         self.mainPanel.update(upd=[0,3,5])                                      # Update the main panel, sts panel, and this panel
         
     ###########################################################################
@@ -231,10 +241,9 @@ class GridPanel(Panel):
         indexes = self.getGridIndexes()                                         # Convert x,y coordinates to the x,y indexes of point spectra in the 3D array
         spectra = []                                                            # Array to store the extracted point spectra
         for idx in indexes:
-            spectra.append(self.gridData.signals[self.ychannel][idx[1],idx[0],:]) # Append point spectra from desired locations
+            spectra.append(self.data[1][idx[1],idx[0],:])                       # Append point spectra from desired locations
         
-        sweep = self.gridData.signals['sweep_signal']                           # The signal swept during acquisition (typically bias)
-        return copy.deepcopy(sweep),copy.deepcopy(spectra)
+        return self.data[0],copy.deepcopy(spectra)
     
     def getAveragedPointSpectra(self):
         if(not self.gridData): return [],[]                                     # If we're here, we haven't loaded a 3ds file yet
@@ -244,7 +253,7 @@ class GridPanel(Panel):
         for indexes in indexList:
             averagedSpectrum = 0*sweep
             for idx in indexes:
-                averagedSpectrum += self.gridData.signals[self.ychannel][idx[1],idx[0],:]
+                averagedSpectrum += self.data[1][idx[1],idx[0],:]
             spectra.append(averagedSpectrum/len(indexes))
         
         return copy.deepcopy(sweep),copy.deepcopy(spectra)
@@ -274,14 +283,7 @@ class GridPanel(Panel):
                 x_idx = int((pos[0]/lxy[0]) * self.gridData.header['dim_px'][0])
                 y_idx = int((pos[1]/lxy[1]) * self.gridData.header['dim_px'][1])
                 indexes.append(np.array([x_idx,y_idx]))
-            indexList.append(copy.deepcopy(indexes))
-        
-        # if(len(self.currentExtractPos)):                                        # And also the mouse is hovering over, if we're currently choosing a point
-        #     pos = self.currentExtractPos
-        #     x_idx = int((pos[0]/lxy[0]) * self.gridData.header['dim_px'][0])
-        #     y_idx = int((pos[1]/lxy[1]) * self.gridData.header['dim_px'][1])
-        #     indexes.append(np.array([x_idx,y_idx]))
-            
+            indexList.append(copy.deepcopy(indexes))    
         return indexList
         
     ###########################################################################
@@ -324,7 +326,8 @@ class GridPanel(Panel):
         for m in self.atoms:
             X,Y    = self.bbox['bbox'][0]
             origin = self.bbox['origin']
-            angle  = math.pi*self.bbox['angle']/180
+            scanAngle = self.mainPanel.scanAngle
+            angle  = math.pi*(self.bbox['angle'] + scanAngle)/180
             for pos in m.positions:
                 pos[0:2] = self.rotate(origin,pos[0:2],-angle)                  # Rotate
                 pos -= np.array([X,Y,0])                                        # And shift the atoms according to rotation and offset of grid frame w.r.t scan frame
@@ -337,6 +340,17 @@ class GridPanel(Panel):
     ###########################################################################
     # Misc
     ###########################################################################
+    def smooth(self):
+        self.data    = []
+        sweep = self.gridData.signals['sweep_signal']
+        self.data.append(sweep)
+        self.data.append(copy.deepcopy(self.gridData.signals[self.ychannel]))
+        for idx,i in enumerate(self.data[1]):
+            for jdx,c in enumerate(i):
+                curve = self.mainPanel.stsPanel.getDIDV(curve=[sweep,c],ychannel=self.ychannel)
+                self.data[1][idx][jdx] = curve[1]
+        self.update()
+        
     def getBias(self):
         return self.gridData.signals['sweep_signal'][self.bias]                 # Convert bias index to actual bias value
     

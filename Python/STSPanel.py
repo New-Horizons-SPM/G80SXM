@@ -89,9 +89,7 @@ class STSPanel(Panel):
             if(not self.mainPanel.gridPanel.imprint):
                 return
         
-        curve = self.mainPanel.gridPanel.getPointSpectra()
-        if(not len(curve[1])): return
-        sweep,spectra = self.getDIDV(curve=curve)
+        sweep,spectra = self.mainPanel.gridPanel.getPointSpectra()
         
         offset = 0; cnt = 0; num_offset = 3; max_val = 0
         for s in spectra:
@@ -113,9 +111,7 @@ class STSPanel(Panel):
         if(not self.mainPanel.gridPanel.active):
             if(not self.mainPanel.gridPanel.imprint):
                 return
-        curve = self.mainPanel.gridPanel.getAveragedPointSpectra()
-        if(not len(curve[1])): return
-        sweep,spectra = self.getDIDV(curve=curve)
+        sweep,spectra = self.mainPanel.gridPanel.getAveragedPointSpectra()
         
         offset = 0; cnt = 0; num_offset = 3; max_val = 0
         for idx,s in enumerate(spectra):
@@ -162,12 +158,14 @@ class STSPanel(Panel):
     ###########################################################################
     # Data
     ###########################################################################
-    def getDIDV(self,datFile="",curve=[]):
+    def getDIDV(self,datFile="",curve=[],xchannel="",ychannel=""):
+        if(xchannel == ""): xchannel = self.dat_xchannel
+        if(ychannel == ""): ychannel = self.dat_ychannel
         V = 0; didv = 0
         if(datFile):
             dat = nap.read.Spec(datFile)
             V = dat.signals[self.dat_xchannel]
-            I = dat.signals[self.dat_ychannel]
+            I = dat.signals[ychannel]
         elif(len(curve)):
             V = curve[0]
             I = curve[1]
@@ -179,7 +177,7 @@ class STSPanel(Panel):
         didv = savgol(I,self.sg_pts,self.sg_poly,deriv=1,delta=dV)
         if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
         
-        if('Demod' in self.dat_ychannel):
+        if('Demod' in ychannel):
             didv = savgol(I,self.sg_pts,self.sg_poly,deriv=0)
             if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
         
@@ -189,7 +187,8 @@ class STSPanel(Panel):
         self.sg_pts = 2*int(event) + 1                                          # Change the bias on a slider event
         if(self.sg_pts <= self.sg_poly):
             self.sg_pts  = self.sg_poly + 1                                     # Window must be greater than poly order
-            self.sg_pts += int((self.sg_pts+1)%2)                               # Window must be odd 
+            self.sg_pts += int((self.sg_pts+1)%2)                               # Window must be odd
+        self.mainPanel.gridPanel.smooth()
         self.update()                                                           # Update this panel and the STS panel (to show the vertical dashed line at selected bias)
     ###########################################################################
     # STS Reference
