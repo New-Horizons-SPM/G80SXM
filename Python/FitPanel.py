@@ -32,7 +32,6 @@ class FitPanel(Panel):
             "Next":     tk.Button(self.master, text="Next Curve", command=self.nextCurve),
             "Add":      tk.Menubutton(self.master, text="Add",  relief=tk.RAISED),
             "Edit":     tk.Menubutton(self.master, text="Edit", relief=tk.RAISED),
-            # "Scale":    tk.Button(self.master, text="Linear",     command=self._scale),
             # "Undo":     tk.Button(self.master, text="Undo Last",  command=self._undo),
             # "Reset":    tk.Button(self.master, text="Reset",      command=self._reset),
             # "Imprint":  tk.Button(self.master, text="Imprint",    command=super()._imprint),
@@ -79,11 +78,13 @@ class FitPanel(Panel):
                         +    "Then use the 'Fit Params' button to adjust the parameters for each component")
         
         self.ax.cla()                                                           # Clear the axis
-        self.plotSTS()                                                          # Loops through .dat files, takes the derivative of IV curves and plot dI/dV
+        self.plotSTS()                                                          # Plots the sts curve selected from the sts panel
+        self.plotFit()                                                          # 
         self.ax.set_position([0.13, 0.1, 0.83, 0.83])                           # Leave room for axis labels and title
         
         self.canvas.figure = self.fig                                           # Assign the figure to the canvas
         self.canvas.draw()                                                      # Redraw the canvas with the updated figure
+        print(self.fitDict)
     
     def plotSTS(self):
         self.validateCurveIdx()
@@ -105,6 +106,14 @@ class FitPanel(Panel):
         self.ax.set_ylabel("dI/dV (arb)")
         self.ax.set_title("Point Spectroscopy")
     
+    def plotFit(self):
+        result = self.fit()
+        if(not result): return
+        print(fit_report(result))
+        c = self.mainPanel.mplibColours[self.curveIdx + 1]
+        self.ax.plot(self.curve[0], result.init_fit, '--', label='init fit', c=c)
+        self.ax.plot(self.curve[0], result.best_fit, '-', label='best fit', c=c)
+        
     ###########################################################################
     # Curve Fitting
     ###########################################################################
@@ -119,14 +128,19 @@ class FitPanel(Panel):
             self.fitDict["FermiDirac"] = []
         self.showFermiDiracForm()
     
-    def showFermiDiracForm(self,index=-1):
+    def showFermiDiracForm(self):
         for l in self.fermiLabels:
             l[0].grid(row=l[1],column=l[2])
             
-        for e in self.fermiEntries:
+        for idx,e in enumerate(self.fermiEntries):
             e[0].grid(row=e[1],column=e[2])
+            if(self.componentIdx < 0): continue
+            print(">>",self.componentIdx)
+            e[0].delete(0,tk.END)
+            e[0].insert(0,self.fitDict["FermiDirac"][self.componentIdx][idx])
         
         for b in self.fermiBtn:
+            if(b[0]['text'] == "remove" and self.componentIdx == -1): continue
             b[0].grid(row=b[1],column=b[2])
         
     def hideFermiDiracForm(self):
@@ -139,58 +153,90 @@ class FitPanel(Panel):
         for b in self.fermiBtn:
             b[0].grid_forget()
             
-    def submitFermiDiracForm(self,index=-1):
+    def submitFermiDiracForm(self):
         params = []
         for e in self.fermiEntries:
             try:
-                params.append(float(e[0].get()))
+                params.append(np.float32(e[0].get()))
             except:
                 self.updateHelpLabel("Error in form: All values must be numeric.")
                 return
         
-        if(index == -1):
+        if(self.componentIdx == -1):
             self.fitDict["FermiDirac"].append(params)
         else:
-            self.fitDict["FermiDirac"][index] = params
+            self.fitDict["FermiDirac"][self.componentIdx] = params
         
         self.hideFermiDiracForm()
         self.update()
         self.updateEditButton()
+        self.componentIdx = -1
     
     def updateEditButton(self):
         menu = tk.Menu(self.btn['Edit'], tearoff=0)
         if("FermiDirac" in self.fitDict):
             for idx,f in enumerate(self.fitDict["FermiDirac"]):
-                menu.add_command(label="Fermi-Dirac " + str(idx),command=lambda: self.editFermiDirac(idx))
+                menu.add_command(label="Fermi-Dirac " + str(idx),command=lambda x=idx: self.editFermiDirac(x)) # Can't bind loop variable to lambda in Python. Need to do it this way (indexes[idx])
         
         self.btn['Edit']['menu'] = menu
         
     def editFermiDirac(self,index):
-        self.showFermiDiracForm(index)
+        self.componentIdx = index
+        self.showFermiDiracForm()
         
     def cancelFermiDiracForm(self):
         self.hideFermiDiracForm()
+        self.componentIdx = -1
+    
+    def removeFermiDiracForm(self):
+        del self.fitDict["FermiDirac"][self.componentIdx]
+        self.componentIdx = -1
+        self.updateEditButton()
+        self.hideFermiDiracForm()
+        self.update()
         
     def reset(self):
-        self.pars = Parameters()
         self.fitDict = {}
+        self.update()
     
     def fit(self):
-        fermiDirac = self.fitDict["FermiDirac"]
-        for idx,fd in enumerate(fermiDirac):
-            xx = self.curve[0]
-            yy = self.curve[1]
-            tol = 0.05*abs(np.max(xx) - np.min(xx))
-            A  = fd[0]; Amin  = A  - tol; Amax  = A  + tol
-            x0 = fd[1]; x0min = x0 - tol; x0max = x0 + tol
-            kT = 8.617e-5*fd[2]
-            self.pars.add('FD' + idx + '_A',  value=A,  min=Amin,  max=Amax)
-            self.pars.add('FD' + idx + '_x0', value=x0, min=x0min, max=x0max)
-            self.pars.add('FD' + idx + '_T',  value=-kT, vary=False)
+        model = 0
+        pars = Parameters()
+        xx = self.curve[0]
+        yy = self.curve[1]
+        if("FermiDirac" in self.fitDict):
+            fermiEdge = []
+            fermiDirac = self.fitDict["FermiDirac"]
+            for idx,fd in enumerate(fermiDirac):
+                A  = fd[0]; Amin  = fd[1]; Amax  = fd[2]
+                x0 = fd[3]; x0min = fd[4]; x0max = fd[5]
+                kT = 8.617e-5*fd[6]
+                
+                print(x0,x0min,x0max)
+                pars.add('FD' + str(idx) + '_A',  value=A,  min=Amin,  max=Amax)
+                pars.add('FD' + str(idx) + '_x0', value=x0, min=x0min, max=x0max)
+                pars.add('FD' + str(idx) + '_T',  value=-kT, vary=False)
+                pars.add('FD' + str(idx) + '_c',  value=A,  min=0,     max=2*A)
+                
+                fermiEdge.append(Model(self.fermiDiracFunc,prefix='FD' + str(idx) + '_'))
+                if(not model): model = fermiEdge[-1]
+                else:          model += fermiEdge[-1]
+        
+        if("Gaussian" in self.fitDict):
+            pass
+        
+        if("Reference" in self.fitDict):
+            pass
+        
+        if(model == 0): return 0
+        
+        model.eval(pars,x=xx)
+        return model.fit(yy,pars,x=xx)
+        
     ###########################################################################
     # Custom Fitting Curves (not in lmfit)
     ###########################################################################
-    def fermiDirac(x, A, x0, T):
+    def fermiDiracFunc(self,x, A, x0, T, c):
         """
         Fermi-Dirac function
 
@@ -199,14 +245,21 @@ class FitPanel(Panel):
         x  : x-axis
         A  : Amplitude
         x0 : Onset
-        T : Temperature (K)
+        T  : Temperature (K)
 
         Returns
         -------
         Fermi-Dirac Function
 
         """
-        return A/(np.exp((x-x0)/(-8.617e-5*T)) + 1)
+        # step = x*0
+        # step[x < x0] = 0
+        # step[x >=x0] = A
+        # step += c
+        # return step
+        # return A*np.heaviside(x-x0,0.5) + c
+        # return -A/(np.exp((x-x0)/(-8.617e-5*T)) + 1) + c
+        return A/(1+np.exp((x0-x)/(-8.617e-5*T))) + c
     
     ###########################################################################
     # Misc Button Functions
