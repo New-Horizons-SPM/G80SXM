@@ -342,6 +342,8 @@ class GridPanel(Panel):
     ###########################################################################
     def smooth(self):
         self.data    = []
+        if(not self.gridData): return
+        
         sweep = self.gridData.signals['sweep_signal']
         self.data.append(sweep)
         self.data.append(copy.deepcopy(self.gridData.signals[self.ychannel]))

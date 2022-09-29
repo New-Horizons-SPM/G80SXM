@@ -13,6 +13,8 @@ import nanonispy as nap
 import math
 from scipy.signal import savgol_filter as savgol
 import matplotlib.patheffects as patheffects
+from FitPanel import FitPanel
+
 class STSPanel(Panel):
     datFile = []; stsPos = []; stsOffset = False                                # list of .dat filenames. stspos: location of xy pos 
     logScale = False
@@ -29,10 +31,16 @@ class STSPanel(Panel):
     ###########################################################################
     def __init__(self, master, width, height, dpi, mainPanel):
         super().__init__(master, width, height, dpi, mainPanel=mainPanel)
+        self.buildSubPanels()
         self.buttons()
     ###########################################################################
     # Panel
     ###########################################################################
+    def buildSubPanels(self):                                                   # Sub panels are build in here. add new ones here first
+        commonParams = [self.master, self.width, self.height, self.dpi, self.mainPanel]
+        
+        self.fitPanel = FitPanel(*commonParams)                                 # Curve fitting panel
+        
     def buttons(self):
         self.btn = {
             "Multi":    tk.Button(self.master, text="Add Multi",  command=self._browseMulti),
@@ -50,12 +58,13 @@ class STSPanel(Panel):
             "Reset":    tk.Button(self.master, text="Reset",      command=self._reset),
             "Inset":    tk.Button(self.master, text="Inset",      command=super().addInset),
             "Imprint":  tk.Button(self.master, text="Imprint",    command=super()._imprint),
+            "Fitting":  tk.Button(self.master, text="Fit",        command=self.fitPanel.create),
             "Close":    tk.Button(self.master, text="Close",      command=self.destroy)
             }
            
     def special(self):                                                          # Special canvas UI
         self.slider = tk.Scale(self.master, orient=tk.HORIZONTAL, from_=0, to=9, length=420, command=self.smoothing) # Slider to select which bias/sweep signal slice to look show
-        self.slider.grid(row=9,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
+        self.slider.grid(row=10,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
 
     def removeSpecial(self):
         self.slider.grid_forget()                                               # Called when panel is closed
@@ -76,7 +85,9 @@ class STSPanel(Panel):
         
         self.canvas.figure = self.fig                                           # Assign the figure to the canvas
         self.canvas.draw()                                                      # Redraw the canvas with the updated figure
-    
+        
+        self.fitPanel.update()
+        
     def plotReference(self):
         if(not self.showRef): return
         V,didv = self.getDIDV(self.referencePath)
