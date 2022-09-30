@@ -235,7 +235,7 @@ class STSPanel(Panel):
         greater than the number of points in the reference spectrum in the 
         overlapping region
         """
-        if(not self.referencePath): return 0
+        if(not self.referencePath): return 0*x
         try:
             return np.interp(x, self.reference[0], self.reference[1])
         except Exception as e:
