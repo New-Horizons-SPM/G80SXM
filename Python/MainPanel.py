@@ -7,6 +7,7 @@ Created on Fri Apr  8 15:00:50 2022
 
 from Panel import Panel
 import tkinter as tk
+import customtkinter as ctk
 from   tkinter import filedialog
 from LineProfilePanel import LineProfilePanel
 from FFTPanel import FFTPanel
@@ -94,31 +95,31 @@ class MainPanel(Panel):
         
     def buttons(self):
         self.btn = {
-            "Plot":     tk.Button(self.master, text="Load SXM", command=self.loadSXM),              # Button to plot a new sxm
-            "DrawHAT":  tk.Button(self.master, text="HAT.xyz",  command=lambda: self.placeMolecule("../xyz/HAT.xyz")), # Button to place a HAT molecule
-            "DrawDCA":  tk.Button(self.master, text="DCA.xyz",  command=lambda: self.placeMolecule("../xyz/DCA.xyz")), # Button to place a DCA molecule
-            "DrawCu":   tk.Button(self.master, text="Cu.xyz",   command=lambda: self.placeMolecule("../xyz/Cu.xyz")),  # Button to place a Cu atom
-            "Undo":     tk.Button(self.master, text="Undo",     command=self.undoMolecule),         # Button to place a Cu atom
-            "cmap":     tk.Button(self.master, text="viridis",  command=super()._cmap),             # Button to cycle through colour maps
-            "Tilt":     tk.Button(self.master, text="Tilt",     command=self.tilt),                 # Button to tilt correct an image using arrow keys
-            "PlaneFit": tk.Button(self.master, text="Plane Fit",command=self.planeFit),             # Button to plane fit an area and subtract from image (like tilt but auto)
-            "Shift":    tk.Button(self.master, text="Shift",    command=self.toggleShiftL),         # Button to toggle shift mode
-            "Caption":  tk.Button(self.master, text="Caption",  command=self._toggleCaption),       # Toggle the plot caption
-            "Profiles": tk.Button(self.master, text="Profiles", command=self.linePanel.create),     # Button to activate 1D Profiles panel
-            "FFT":      tk.Button(self.master, text="FFT",      command=self.fftPanel.create),      # Button to activate FFT panel
-            "STS":      tk.Button(self.master, text="STS",      command=self.stsPanel.create),      # Button to activate STS panel
-            "Filter":   tk.Button(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
-            # "AIML":     tk.Button(self.master, text="LabelMode",command=self.aimlPanel.create),     # Button to activate AI machine learning data labeler
-            "Grid":     tk.Button(self.master, text="STSGrid",  command=self.gridPanel.create),     # Button to activate AI machine learning data labeler
-            "InsetCol": tk.Button(self.master, text="Inset Col",command=self._insetCmap),           # Change the inset font and line colours
-            "RemInset": tk.Button(self.master, text="Rem Inset",command=self._removeInset),         # Remove the inset from main panel
-            "FlipIm":   tk.Button(self.master, text="Flip scan",command=self._flipScan),            # Flip the current scan
-            "RotIm":    tk.Button(self.master, text="Rotate",   command=self._rotateScan),          # Flip the current scan
-            "Channel":  tk.Button(self.master, text="Z (m)",    command=self._channel),             # Flip the current scan
-            "Save":     tk.Button(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
-            "PNG":      tk.Button(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
-            "Load":     tk.Button(self.master, text="Load",     command=self._load),                # Load a .g80 file
-            "Quit":     tk.Button(self.master, text="Quit",     command=self.quit)                  # Button to quit the program
+            "Plot":     ctk.CTkButton(self.master, text="Load SXM", command=self.loadSXM),              # Button to plot a new sxm
+            "DrawHAT":  ctk.CTkButton(self.master, text="HAT.xyz",  command=lambda: self.placeMolecule("../xyz/HAT.xyz")), # Button to place a HAT molecule
+            "DrawDCA":  ctk.CTkButton(self.master, text="DCA.xyz",  command=lambda: self.placeMolecule("../xyz/DCA.xyz")), # Button to place a DCA molecule
+            "DrawCu":   ctk.CTkButton(self.master, text="Cu.xyz",   command=lambda: self.placeMolecule("../xyz/Cu.xyz")),  # Button to place a Cu atom
+            "Undo":     ctk.CTkButton(self.master, text="Undo",     command=self.undoMolecule),         # Button to place a Cu atom
+            "cmap":     ctk.CTkButton(self.master, text="viridis",  command=super()._cmap),             # Button to cycle through colour maps
+            "Tilt":     ctk.CTkButton(self.master, text="Tilt",     command=self.tilt),                 # Button to tilt correct an image using arrow keys
+            "PlaneFit": ctk.CTkButton(self.master, text="Plane Fit",command=self.planeFit),             # Button to plane fit an area and subtract from image (like tilt but auto)
+            "Shift":    ctk.CTkButton(self.master, text="Shift",    command=self.toggleShiftL),         # Button to toggle shift mode
+            "Caption":  ctk.CTkButton(self.master, text="Caption",  command=self._toggleCaption),       # Toggle the plot caption
+            "Profiles": ctk.CTkButton(self.master, text="Profiles", command=self.linePanel.create),     # Button to activate 1D Profiles panel
+            "FFT":      ctk.CTkButton(self.master, text="FFT",      command=self.fftPanel.create),      # Button to activate FFT panel
+            "STS":      ctk.CTkButton(self.master, text="STS",      command=self.stsPanel.create),      # Button to activate STS panel
+            "Filter":   ctk.CTkButton(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
+            # "AIML":     ctk.CTkButton(self.master, text="LabelMode",command=self.aimlPanel.create),     # Button to activate AI machine learning data labeler
+            "Grid":     ctk.CTkButton(self.master, text="STSGrid",  command=self.gridPanel.create),     # Button to activate AI machine learning data labeler
+            "InsetCol": ctk.CTkButton(self.master, text="Inset Col",command=self._insetCmap),           # Change the inset font and line colours
+            "RemInset": ctk.CTkButton(self.master, text="Rem Inset",command=self._removeInset),         # Remove the inset from main panel
+            "FlipIm":   ctk.CTkButton(self.master, text="Flip scan",command=self._flipScan),            # Flip the current scan
+            "RotIm":    ctk.CTkButton(self.master, text="Rotate",   command=self._rotateScan),          # Flip the current scan
+            "Channel":  ctk.CTkButton(self.master, text="Z (m)",    command=self._channel),             # Flip the current scan
+            "Save":     ctk.CTkButton(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
+            "PNG":      ctk.CTkButton(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
+            "Load":     ctk.CTkButton(self.master, text="Load",     command=self._load),                # Load a .g80 file
+            "Quit":     ctk.CTkButton(self.master, text="Quit",     command=self.quit)                  # Button to quit the program
             }
     ###########################################################################
     # Main Panel Updates

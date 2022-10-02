@@ -6,6 +6,7 @@ Created on Fri Apr  8 18:56:27 2022
 """
 
 import tkinter as tk
+import customtkinter as ctk
 from tkinter import filedialog
 import numpy as np
 import math
@@ -61,12 +62,15 @@ class Panel():
     def addButtons(self):
         numCols = 4                                                             # We're displaying 4 buttons per row per panel
         row = 5; col = 0                                                        # Row=5 because rows 0-4 are taken up by the canvas
+        self.master.rowconfigure(index=row,minsize=40)
         for btn in self.btn.values():                                           # Now loop through each button and put it in the correct position. 4 per row
-            btn.grid(row=row,column=col+self.pos,ipadx=0)
+            btn.grid(row=row,column=col+self.pos)
+            btn.configure(width=120,height=35)
             col += 1
             if(col == numCols):
                 col  = 0
                 row += 1
+                self.master.rowconfigure(index=row,minsize=40)
     def removeButtons(self):                                                    # Remove all the buttons after destroying the canvas
         for btn in self.btn.values():
             btn.grid_forget()
