@@ -62,7 +62,7 @@ class Panel():
     def addButtons(self):
         numCols = 4                                                             # We're displaying 4 buttons per row per panel
         row = 5; col = 0                                                        # Row=5 because rows 0-4 are taken up by the canvas
-        self.master.rowconfigure(index=row,minsize=40)
+        self.master.rowconfigure(index=row,weight=1,minsize=40)
         for btn in self.btn.values():                                           # Now loop through each button and put it in the correct position. 4 per row
             btn.grid(row=row,column=col+self.pos)
             btn.configure(width=100,height=27)
@@ -70,7 +70,7 @@ class Panel():
             if(col == numCols):
                 col  = 0
                 row += 1
-                self.master.rowconfigure(index=row,minsize=40)
+                self.master.rowconfigure(index=row,weight=1,minsize=40)
     def removeButtons(self):                                                    # Remove all the buttons after destroying the canvas
         for btn in self.btn.values():
             btn.grid_forget()
@@ -95,23 +95,29 @@ class Panel():
         if(self.mainPanel):
             if(not self.mainPanel.init): return
         if(self.active): return                                                 # Do nothing if the panel is already active
-        self.pos = self.master.grid_size()[0]                                   # Position of the end of the last panel
+        
+        self.pos = 0
+        if(self.mainPanel):
+            self.pos = int(4*self.master.winfo_width()/self.width)
+            
         self.canvas.get_tk_widget().grid(row=0,column=self.pos, rowspan=4,columnspan=4) # Put this panel after the last one (left to right)
         self.addButtons()                                                       # Display the buttons
         self.special()
         self._helpLabel()
         self.active = True
+        self.master.geometry("%dx%d" % (512*(self.pos+4)/4, 800))
         self.update()
         if(self.mainPanel): self.mainPanel.update()
-    
+        
     def destroy(self):                                                          # Hide this canvas, it's panel is not active anymore
         self.canvas.get_tk_widget().grid_forget()
         self.removeButtons()                                                    # Also hide the buttons
         self.removeSpecial()
         self.removeHelpLabel()
         self.active = False
+        self.master.geometry("%dx%d" % (self.master.winfo_width() - self.width, 800))
         self.mainPanel.update()
-    
+        
     def addInset(self):
         self.mainPanel.addInset(self.fig)
         self.mainPanel.update()
