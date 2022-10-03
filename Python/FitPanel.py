@@ -7,6 +7,7 @@ Created on Thu Sep 29 11:23:21 2022
 
 from Panel import Panel
 import tkinter as tk
+import customtkinter as ctk
 import numpy as np
 
 from lmfit import Model, Parameters, fit_report
@@ -30,20 +31,15 @@ class FitPanel(Panel):
     ###########################################################################
     def buttons(self):
         self.btn = {
-            "Next":     tk.Button(self.master, text="Next Curve", command=self.nextCurve),
-            "Add":      tk.Menubutton(self.master, text="Add",  relief=tk.RAISED),
-            "Edit":     tk.Menubutton(self.master, text="Edit", relief=tk.RAISED),
-            # "Undo":     tk.Button(self.master, text="Undo Last",  command=self._undo),
-            # "Reset":    tk.Button(self.master, text="Reset",      command=self._reset),
-            # "Imprint":  tk.Button(self.master, text="Imprint",    command=super()._imprint),
-            "Close":    tk.Button(self.master, text="Close",      command=self.destroy)
+            "Next":     ctk.CTkButton(self.master, text="Next Curve", command=self.nextCurve),
+            "Add":      ctk.CTkComboBox(self.master,values=["Add Fit"], command=self.addFitCurve),
+            "Edit":     ctk.CTkComboBox(self.master,values=["Edit Fit"],command=self.editForm),
+            "Reset":    ctk.CTkButton(self.master, text="Reset",      command=self.reset),
+            "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
         
-        menu = tk.Menu(self.btn['Add'],tearoff=0)
-        menu.add_command(label="Reference",   command=lambda: self.addFitCurve("Reference"))
-        menu.add_command(label="Gaussian",    command=lambda: self.addFitCurve("Gaussian"))
-        menu.add_command(label="Fermi-Dirac", command=lambda: self.addFitCurve("FermiDirac"))
-        self.btn['Add']['menu'] = menu
+        addValues=["Add Fit","Reference","Gaussian","Fermi-Dirac"]
+        self.btn['Add'].configure(values=addValues,variable="Add Fit")
         
     def special(self):
         # Reference Form
@@ -57,7 +53,7 @@ class FitPanel(Panel):
         params.append(['A','Amin','Amax'])
         params.append(['x0','x0min','x0max'])
         params.append(['T'])
-        self.buildForm(name="FermiDirac", params=params)
+        self.buildForm(name="Fermi-Dirac", params=params)
         
         # Gaussian Form
         params = []
@@ -68,7 +64,7 @@ class FitPanel(Panel):
         self.buildForm(name="Gaussian", params=params)
         
     def removeSpecial(self):
-        self.hideFermiDiracForm()
+        self.hideForm()
     
     def buildForm(self,name,params):
         self.forms[name] = {"labels"  : [],
@@ -77,14 +73,14 @@ class FitPanel(Panel):
         idr = 0; row = 7
         for idr,p in enumerate(params):
             for idp,param in enumerate(p):
-                self.forms[name]['labels'].append([tk.Label(self.master, text=param),row+idr,self.pos + 2*idp])
-                self.forms[name]['entries'].append([tk.Entry(self.master),row+idr,self.pos+2*idp+1])
+                self.forms[name]['labels'].append([ctk.CTkLabel(self.master, text=param),row+idr,self.pos + 2*idp])
+                self.forms[name]['entries'].append([ctk.CTkEntry(self.master),row+idr,self.pos+2*idp+1])
         
         idr += 1
         self.forms[name]['buttons'] = []
-        self.forms[name]['buttons'].append([tk.Button(self.master, text="submit", command=lambda n=name: self.submitForm(n)),row+idr,self.pos + 1])
-        self.forms[name]['buttons'].append([tk.Button(self.master, text="cancel", command=lambda n=name: self.cancelForm(n)),row+idr,self.pos + 2])
-        self.forms[name]['buttons'].append([tk.Button(self.master, text="remove", command=lambda n=name: self.removeForm(n)),row+idr,self.pos + 3])
+        self.forms[name]['buttons'].append([ctk.CTkButton(self.master, text="submit", command=lambda n=name: self.submitForm(n)),row+idr,self.pos + 1])
+        self.forms[name]['buttons'].append([ctk.CTkButton(self.master, text="cancel", command=lambda n=name: self.cancelForm(n)),row+idr,self.pos + 2])
+        self.forms[name]['buttons'].append([ctk.CTkButton(self.master, text="remove", command=lambda n=name: self.removeForm(n)),row+idr,self.pos + 3])
         
     ###########################################################################
     # Update and Plotting
@@ -140,9 +136,9 @@ class FitPanel(Panel):
         pars = Parameters()
         xx = self.curve[0]
         yy = self.curve[1]
-        if("FermiDirac" in self.fitDict):
+        if("Fermi-Dirac" in self.fitDict):
             fermiEdge = []
-            fermiDirac = self.fitDict["FermiDirac"]
+            fermiDirac = self.fitDict["Fermi-Dirac"]
             for idx,fd in enumerate(fermiDirac):
                 A  = fd[0]; Amin  = fd[1]; Amax  = fd[2]
                 x0 = fd[3]; x0min = fd[4]; x0max = fd[5]
@@ -209,20 +205,26 @@ class FitPanel(Panel):
             e[0].insert(0,self.fitDict[name][self.componentIdx][idx])
         
         for b in self.forms[name]['buttons']:
-            if(b[0]['text'] == "remove" and self.componentIdx == -1): continue  # Only show the 'remove' button if we're editing a selection
+            if(b[0].text == "remove" and self.componentIdx == -1): continue  # Only show the 'remove' button if we're editing a selection
             b[0].grid(row=b[1],column=b[2])
             
-    def hideForm(self,name):
+    def hideForm(self,name=""):
         self.formActive = False
+        names = [name]
+        if(not names[0]): names = self.forms.keys()
         
-        for l in self.forms[name]['labels']:
-            l[0].grid_forget()
+        for name in names:
+            for l in self.forms[name]['labels']:
+                l[0].grid_forget()
+                
+            for e in self.forms[name]['entries']:
+                e[0].grid_forget()
             
-        for e in self.forms[name]['entries']:
-            e[0].grid_forget()
+            for b in self.forms[name]['buttons']:
+                b[0].grid_forget()
         
-        for b in self.forms[name]['buttons']:
-            b[0].grid_forget()
+        self.btn['Add'].set("Add Fit")
+        self.btn['Edit'].set("Edit Fit")
             
     def submitForm(self,name):
         params = []
@@ -254,8 +256,9 @@ class FitPanel(Panel):
         self.hideForm(name=name)
         self.update()
         
-    def editForm(self,name,index):
-        self.componentIdx = index
+    def editForm(self,name):
+        name,index = name.split(" ")
+        self.componentIdx = int(index)
         self.showForm(name=name)
     ###########################################################################
     # Custom Fitting Curves (not in lmfit)
@@ -305,29 +308,17 @@ class FitPanel(Panel):
         if(self.curveIdx < 0 and numCurves): self.curveIdx = 0
         
     def addFitCurve(self,name):
+        if(name == "Add Fit"): return
         if(not name in self.fitDict):
             self.fitDict[name] = []
         self.showForm(name=name)
         
     def updateEditButton(self):
-        menu = tk.Menu(self.btn['Edit'], tearoff=0)
+        editValues = ["Edit Fit"]
         for key in self.fitDict.keys():
             for idx,p in enumerate(self.fitDict[key]):
-                menu.add_command(label=key + " " + str(idx),command=lambda k=key,x=idx: self.editForm(k,x)) # Can't bind loop variable to lambda in Python. Need to do it this way (indexes[idx])
-                
-        # if("Reference" in self.fitDict):
-        #     for idx,f in enumerate(self.fitDict["Reference"]):
-        #         menu.add_command(label="Reference " + str(idx),command=lambda x=idx: self.editForm("Reference",x)) # Can't bind loop variable to lambda in Python. Need to do it this way (indexes[idx])
-                
-        # if("FermiDirac" in self.fitDict):
-        #     for idx,f in enumerate(self.fitDict["FermiDirac"]):
-        #         menu.add_command(label="Fermi-Dirac " + str(idx),command=lambda x=idx: self.editForm("FermiDirac",x)) # Can't bind loop variable to lambda in Python. Need to do it this way (indexes[idx])
-        
-        # if("Gaussian" in self.fitDict):
-        #     for idx,f in enumerate(self.fitDict["Gaussian"]):
-        #         menu.add_command(label="Gaussian " + str(idx),command=lambda x=idx: self.editForm("Gaussian",x)) # Can't bind loop variable to lambda in Python. Need to do it this way (indexes[idx])
-                
-        self.btn['Edit']['menu'] = menu
+                editValues.append(key + " " + str(idx))
+        self.btn['Edit'].configure(values=editValues,variable="Edit Fit")
         
     def reset(self):
         self.fitDict = {}
