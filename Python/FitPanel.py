@@ -38,7 +38,7 @@ class FitPanel(Panel):
             "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
         
-        addValues=["Add Fit","Reference","Gaussian","Fermi-Dirac"]
+        addValues=["Add Fit","Reference","Gaussian","Fermi-Dirac","Point-Spectrum"]
         self.btn['Add'].configure(values=addValues,variable="Add Fit")
         
     def special(self):
@@ -62,6 +62,12 @@ class FitPanel(Panel):
         params.append(['sigma','sigmaMin','sigmaMax'])
         params.append(['c','cmin','cmax'])
         self.buildForm(name="Gaussian", params=params)
+        
+        # Point Spectrum Form
+        params = []
+        params.append(['A','Amin','Amax'])
+        params.append(['c','cmin','cmax'])
+        self.buildForm(name="Point-Spectrum", params=params)
         
     def removeSpecial(self):
         self.hideForm()
@@ -182,7 +188,20 @@ class FitPanel(Panel):
                 
                 if(not model): model  = Model(self.referenceFunc,prefix='REF' + str(idx) + '_')
                 else:          model += Model(self.referenceFunc,prefix='REF' + str(idx) + '_')
-            
+        
+        if("Point-Spectrum" in self.fitDict):
+            pointSpec = self.fitDict["Point-Spectrum"]
+            for idx,ps in enumerate(pointSpec):
+                A = ps[0]; Amin = ps[1]; Amax = ps[2]
+                c = ps[3]; cmin = ps[4]; cmax = ps[5]
+                
+                pars.add('PS' + str(idx) + '_A', value=A, min=Amin, max=Amax)
+                pars.add('PS' + str(idx) + '_c', value=c, min=cmin, max=cmax)
+                pars.add('PS' + str(idx) + '_datFile', value=idx, vary=False)
+                
+                if(not model): model  = Model(self.pointSpecFunc,prefix='PS' + str(idx) + '_')
+                else:          model += Model(self.pointSpecFunc,prefix='PS' + str(idx) + '_')
+                
         if(model == 0): return 0
         
         model.eval(pars,x=xx)
@@ -227,6 +246,13 @@ class FitPanel(Panel):
         self.btn['Edit'].set("Edit Fit")
             
     def submitForm(self,name):
+        filename = ""
+        if(name == "Point-Spectrum"):
+            filename = self._browseFile()
+            if(not filename.endswith(".dat")):
+                print("Excpecting .dat file")
+                return
+        
         params = []
         for e in self.forms[name]['entries']:
             try:
@@ -234,6 +260,8 @@ class FitPanel(Panel):
             except:
                 self.updateHelpLabel("Error in form: All values must be numeric.")
                 return
+        
+        if(filename): params.append(filename)
         
         if(self.componentIdx == -1):
             self.fitDict[name].append(params)
@@ -260,6 +288,7 @@ class FitPanel(Panel):
         name,index = name.split(" ")
         self.componentIdx = int(index)
         self.showForm(name=name)
+        
     ###########################################################################
     # Custom Fitting Curves (not in lmfit)
     ###########################################################################
@@ -291,6 +320,13 @@ class FitPanel(Panel):
     def referenceFunc(self,x,A,c):
         reference = self.mainPanel.stsPanel.getReferenceForCurve(x=x)
         return A*reference + c
+    
+    def pointSpecFunc(self,x,A,c,datFile):
+        datFile = self.fitDict['Point Spectrum'][datFile][6]
+        ps = self.mainPanel.stsPanel.getDIDV(datFile=datFile)
+        PS = self.mainPanel.stsPanel.getReferenceForCurve(x,reference=ps)
+        return A*PS + c
+    
     ###########################################################################
     # Misc Button Functions
     ###########################################################################
