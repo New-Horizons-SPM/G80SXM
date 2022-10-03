@@ -65,7 +65,7 @@ class Panel():
         self.master.rowconfigure(index=row,minsize=40)
         for btn in self.btn.values():                                           # Now loop through each button and put it in the correct position. 4 per row
             btn.grid(row=row,column=col+self.pos)
-            btn.configure(width=120,height=35)
+            btn.configure(width=100,height=27)
             col += 1
             if(col == numCols):
                 col  = 0
@@ -81,7 +81,7 @@ class Panel():
         pass
     
     def _helpLabel(self):
-        self.helpLabel = tk.Label(self.master,text="",justify=tk.LEFT)
+        self.helpLabel = ctk.CTkLabel(self.master,text="",justify=tk.LEFT)
         self.helpLabel.grid(row=12,column=self.pos,columnspan=4,rowspan=4)
     
     def removeHelpLabel(self):
@@ -140,7 +140,7 @@ class Panel():
         self.cmap += 1
         if(self.cmap == len(self.cmaps)):
             self.cmap = 0
-        self.btn['cmap'].config(text = self.cmaps[self.cmap][0])
+        self.btn['cmap'].configure(text=self.cmaps[self.cmap][0])
         self.update()
         
     def customCmap(self,cmap):

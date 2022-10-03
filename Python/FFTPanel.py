@@ -6,7 +6,7 @@ Created on Sat Apr  2 18:09:36 2022
 """
 
 from Panel import Panel
-import tkinter as tk
+import customtkinter as ctk
 import numpy as np
 class FFTPanel(Panel):
     fftZoom = 1;
@@ -25,12 +25,12 @@ class FFTPanel(Panel):
     ###########################################################################
     def buttons(self):
         self.btn = {
-            "cmap":  tk.Button(self.master, text="viridis",     command=super()._cmap), # Button to cycle through colour maps
-            "Place": tk.Button(self.master, text="Data Point",  command=self._fftDataPointBind),
-            "Undo":  tk.Button(self.master, text="Undo",        command=self._undo),
-            "Reset": tk.Button(self.master, text="Reset",       command=self._reset),
-            "Inset": tk.Button(self.master, text="Inset",       command=super().addInset),
-            "Close": tk.Button(self.master, text="Close",       command=self.destroy)
+            "cmap":  ctk.CTkButton(self.master, text="viridis",     command=super()._cmap), # Button to cycle through colour maps
+            "Place": ctk.CTkButton(self.master, text="Data Point",  command=self._fftDataPointBind),
+            "Undo":  ctk.CTkButton(self.master, text="Undo",        command=self._undo),
+            "Reset": ctk.CTkButton(self.master, text="Reset",       command=self._reset),
+            "Inset": ctk.CTkButton(self.master, text="Inset",       command=super().addInset),
+            "Close": ctk.CTkButton(self.master, text="Close",       command=self.destroy)
             }
     ###########################################################################
     # Update and Plotting

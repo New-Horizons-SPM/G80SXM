@@ -6,7 +6,7 @@ Created on Sat Apr  2 18:09:36 2022
 """
 
 from Panel import Panel
-import tkinter as tk
+import customtkinter as ctk
 import numpy as np
 from scipy.signal import convolve2d
 from scipy import ndimage
@@ -27,14 +27,14 @@ class FilterPanel(Panel):
     ###########################################################################
     def buttons(self):
         self.btn = {
-            "RollV+": tk.Button(self.master, text="Roll Vert +", command=lambda: self.updateFilter("rollV", 1)),
-            "RollV-": tk.Button(self.master, text="Roll Vert -", command=lambda: self.updateFilter("rollV",-1)),
-            "RollH+": tk.Button(self.master, text="Roll Horz +", command=lambda: self.updateFilter("rollH", 1)),
-            "RollH-": tk.Button(self.master, text="Roll Horz -", command=lambda: self.updateFilter("rollH",-1)),
-            "HPF+":   tk.Button(self.master, text="High Pass +", command=lambda: self.updateFilter("HP",1)),
-            "HPF-":   tk.Button(self.master, text="High Pass -", command=lambda: self.updateFilter("HP",-1)),
-            "SetFlt": tk.Button(self.master, text="Set Filter",  command=self.setFilter),
-            "Close":  tk.Button(self.master, text="Close",       command=self.destroy)
+            "RollV+": ctk.CTkButton(self.master, text="Roll Vert +", command=lambda: self.updateFilter("rollV", 1)),
+            "RollV-": ctk.CTkButton(self.master, text="Roll Vert -", command=lambda: self.updateFilter("rollV",-1)),
+            "RollH+": ctk.CTkButton(self.master, text="Roll Horz +", command=lambda: self.updateFilter("rollH", 1)),
+            "RollH-": ctk.CTkButton(self.master, text="Roll Horz -", command=lambda: self.updateFilter("rollH",-1)),
+            "HPF+":   ctk.CTkButton(self.master, text="High Pass +", command=lambda: self.updateFilter("HP",1)),
+            "HPF-":   ctk.CTkButton(self.master, text="High Pass -", command=lambda: self.updateFilter("HP",-1)),
+            "SetFlt": ctk.CTkButton(self.master, text="Set Filter",  command=self.setFilter),
+            "Close":  ctk.CTkButton(self.master, text="Close",       command=self.destroy)
             }
     ###########################################################################
     # Update and Plotting (WIP)
