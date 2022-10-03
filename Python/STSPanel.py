@@ -227,7 +227,7 @@ class STSPanel(Panel):
             self.showRef = False
         self.update()
     
-    def getReferenceForCurve(self,x):
+    def getReferenceForCurve(self,x,reference=[]):
         """
         This function is useful when the reference spectra is not exactly the 
         same range/number of points as the data. To return a valid reference, 
@@ -236,9 +236,11 @@ class STSPanel(Panel):
         greater than the number of points in the reference spectrum in the 
         overlapping region
         """
-        if(not self.referencePath): return 0*x
+        if(not len(reference)):
+            if(not self.referencePath): return 0*x
+            reference = self.reference
         try:
-            return np.interp(x, self.reference[0], self.reference[1])
+            return np.interp(x, reference[0], reference[1])
         except Exception as e:
             print(e)
             return 0
