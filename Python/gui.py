@@ -21,7 +21,7 @@ class App(ctk.CTk):
         
         dpi = self.winfo_fpixels('1i')
         self.mainPanel = mp(self, width=self.WIDTH, height=self.HEIGHT, dpi=dpi)
-
+        self.geometry("%dx%d" % (self.WIDTH, 800))
     def on_closing(self, event=0):
         self.mainPanel.quit()
         
