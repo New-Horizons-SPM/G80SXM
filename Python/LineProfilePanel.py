@@ -7,6 +7,7 @@ Created on Sat Apr  2 18:03:13 2022
 
 from Panel import Panel
 import tkinter as tk
+import customtkinter as ctk
 import numpy as np
 import math
 class LineProfilePanel(Panel):
@@ -32,18 +33,18 @@ class LineProfilePanel(Panel):
     ###########################################################################
     def buttons(self):
         self.btn = {
-            "Mode"          : tk.Button(self.master, text="Mode: xy",   command=self.toggleMode),
-            "Add Cursor"    : tk.Button(self.master, text="Add Cursor", command=self.addCursor),
-            "Rem Cursor"    : tk.Button(self.master, text="Rem Cursor", command=self.remCursor),
-            "Next Cursor"   : tk.Button(self.master, text="Next Cursor",command=self.nextCursor),
-            "Cursor 1"      : tk.Button(self.master, text="Cursor 1",   command=lambda:self.cursor(0)),
-            "Cursor 2"      : tk.Button(self.master, text="Cursor 2",   command=lambda:self.cursor(1)),
-            "Info"          : tk.Button(self.master, text="Toggle Info",command=self.toggleShowInfo),
-            "LineColour"    : tk.Button(self.master, text="Line Colour",command=self.changeLineColour),
-            "Fit Steps"     : tk.Button(self.master, text="Fit Steps",  command=self.fitSteps),
-            "Inset"         : tk.Button(self.master, text="Inset",      command=super().addInset),
-            "Imprint"       : tk.Button(self.master, text="Imprint",    command=super()._imprint),
-            "Close"         : tk.Button(self.master, text="Close",      command=self.destroy)
+            "Mode"          : ctk.CTkButton(self.master, text="Mode: xy",   command=self.toggleMode),
+            "Add Cursor"    : ctk.CTkButton(self.master, text="Add Cursor", command=self.addCursor),
+            "Rem Cursor"    : ctk.CTkButton(self.master, text="Rem Cursor", command=self.remCursor),
+            "Next Cursor"   : ctk.CTkButton(self.master, text="Next Cursor",command=self.nextCursor),
+            "Cursor 1"      : ctk.CTkButton(self.master, text="Cursor 1",   command=lambda:self.cursor(0)),
+            "Cursor 2"      : ctk.CTkButton(self.master, text="Cursor 2",   command=lambda:self.cursor(1)),
+            "Info"          : ctk.CTkButton(self.master, text="Toggle Info",command=self.toggleShowInfo),
+            "LineColour"    : ctk.CTkButton(self.master, text="Line Colour",command=self.changeLineColour),
+            "Fit Steps"     : ctk.CTkButton(self.master, text="Fit Steps",  command=self.fitSteps),
+            "Inset"         : ctk.CTkButton(self.master, text="Inset",      command=super().addInset),
+            "Imprint"       : ctk.CTkButton(self.master, text="Imprint",    command=super()._imprint),
+            "Close"         : ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
     
     ###########################################################################

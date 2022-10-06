@@ -6,6 +6,7 @@ Created on Fri Apr  8 18:56:27 2022
 """
 
 import tkinter as tk
+import customtkinter as ctk
 from tkinter import filedialog
 import numpy as np
 import math
@@ -22,10 +23,12 @@ class Panel():
     zunit = 1e-12; xunit = 1e-9                                                 # convert xy units to nm and z units to pm
     helpText = ""
     imprint  = False
-    def __init__(self, master, width, height, dpi, mainPanel=None):
+    def __init__(self, master, width, height, dpi, mainPanel=None,length=4,btnSize=1):
         self.master = master
         self.width  = width
         self.height = height
+        self.length = length
+        self.btnSize = btnSize
         self.dpi    = dpi
         self.mainPanel = mainPanel
         
@@ -59,14 +62,18 @@ class Panel():
         ax.add_artist(scalebar)
         
     def addButtons(self):
-        numCols = 4                                                             # We're displaying 4 buttons per row per panel
+        numCols = np.ceil(self.length/self.btnSize)
         row = 5; col = 0                                                        # Row=5 because rows 0-4 are taken up by the canvas
+        self.master.rowconfigure(index=row,weight=1,minsize=40)
         for btn in self.btn.values():                                           # Now loop through each button and put it in the correct position. 4 per row
-            btn.grid(row=row,column=col+self.pos,ipadx=0)
+            btn.grid(row=row,column=self.btnSize*col+self.pos,columnspan=self.btnSize)
+            btn.configure(width=int(self.width/5),height=27)
             col += 1
             if(col == numCols):
                 col  = 0
                 row += 1
+                self.master.rowconfigure(index=row,weight=1,minsize=40)
+                
     def removeButtons(self):                                                    # Remove all the buttons after destroying the canvas
         for btn in self.btn.values():
             btn.grid_forget()
@@ -77,8 +84,8 @@ class Panel():
         pass
     
     def _helpLabel(self):
-        self.helpLabel = tk.Label(self.master,text="",justify=tk.LEFT)
-        self.helpLabel.grid(row=12,column=self.pos,columnspan=4,rowspan=4)
+        self.helpLabel = ctk.CTkLabel(self.master,text="",justify=tk.LEFT)
+        self.helpLabel.grid(row=12,column=self.pos,columnspan=self.length,rowspan=4)
     
     def removeHelpLabel(self):
         self.helpLabel.grid_forget()
@@ -91,15 +98,23 @@ class Panel():
         if(self.mainPanel):
             if(not self.mainPanel.init): return
         if(self.active): return                                                 # Do nothing if the panel is already active
-        self.pos = self.master.grid_size()[0]                                   # Position of the end of the last panel
-        self.canvas.get_tk_widget().grid(row=0,column=self.pos, rowspan=4,columnspan=4) # Put this panel after the last one (left to right)
+        
+        if(not self.mainPanel): self.pos = 0
+        if(self.mainPanel): self.pos = self.mainPanel.getPos()
+        
+        for col in range(self.length):
+            self.master.columnconfigure(index=col + self.pos,weight=1)
+        
+        self.canvas.get_tk_widget().grid(row=0,column=self.pos, columnspan=self.length,rowspan=4) # Put this panel after the last one (left to right)
         self.addButtons()                                                       # Display the buttons
         self.special()
         self._helpLabel()
         self.active = True
         self.update()
-        if(self.mainPanel): self.mainPanel.update()
-    
+        if(self.mainPanel):
+            self.mainPanel.update()
+            self.mainPanel.adjustWindowSize()
+        
     def destroy(self):                                                          # Hide this canvas, it's panel is not active anymore
         self.canvas.get_tk_widget().grid_forget()
         self.removeButtons()                                                    # Also hide the buttons
@@ -107,7 +122,9 @@ class Panel():
         self.removeHelpLabel()
         self.active = False
         self.mainPanel.update()
-    
+        self.mainPanel.reorderPanels(self.pos)
+        self.mainPanel.adjustWindowSize()
+        
     def addInset(self):
         self.mainPanel.addInset(self.fig)
         self.mainPanel.update()
@@ -136,7 +153,7 @@ class Panel():
         self.cmap += 1
         if(self.cmap == len(self.cmaps)):
             self.cmap = 0
-        self.btn['cmap'].config(text = self.cmaps[self.cmap][0])
+        self.btn['cmap'].configure(text=self.cmaps[self.cmap][0])
         self.update()
         
     def customCmap(self,cmap):

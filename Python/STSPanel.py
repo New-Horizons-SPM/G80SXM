@@ -7,12 +7,14 @@ Created on Sat Apr  2 18:09:36 2022
 
 from Panel import Panel
 import tkinter as tk
+import customtkinter as ctk
 import numpy as np
 import os
 import nanonispy as nap
 import math
 from scipy.signal import savgol_filter as savgol
 import matplotlib.patheffects as patheffects
+
 class STSPanel(Panel):
     datFile = []; stsPos = []; stsOffset = False                                # list of .dat filenames. stspos: location of xy pos 
     logScale = False
@@ -35,27 +37,28 @@ class STSPanel(Panel):
     ###########################################################################
     def buttons(self):
         self.btn = {
-            "Multi":    tk.Button(self.master, text="Add Multi",  command=self._browseMulti),
-            "Single":   tk.Button(self.master, text="Add Single", command=self._browseSingle),
-            "Custom":   tk.Button(self.master, text="Add Custom", command=self._browseCustom),
-            "FromGrid": tk.Button(self.master, text="From Grid",  command=self._addFromGrid),
-            "AvgGrid":  tk.Button(self.master, text="Avg Grid",   command=self.avgFromGrid),
-            "Offset":   tk.Button(self.master, text="Offset",     command=self._offset),
-            "Scale":    tk.Button(self.master, text="Linear",     command=self._scale),
-            "Ref":      tk.Button(self.master, text="Load Ref",   command=self.loadReference),
-            "ShowRef":  tk.Button(self.master, text="Show Ref",   command=self.showReference),
-            "RemRef":   tk.Button(self.master, text="Remove Ref", command=self.removeReference),
-            "Channel":  tk.Button(self.master, text="Current (A)",command=self._cycleChannel),
-            "Undo":     tk.Button(self.master, text="Undo Last",  command=self._undo),
-            "Reset":    tk.Button(self.master, text="Reset",      command=self._reset),
-            "Inset":    tk.Button(self.master, text="Inset",      command=super().addInset),
-            "Imprint":  tk.Button(self.master, text="Imprint",    command=super()._imprint),
-            "Close":    tk.Button(self.master, text="Close",      command=self.destroy)
+            "Multi":    ctk.CTkButton(self.master, text="Add Multi",  command=self._browseMulti),
+            "Single":   ctk.CTkButton(self.master, text="Add Single", command=self._browseSingle),
+            "Custom":   ctk.CTkButton(self.master, text="Add Custom", command=self._browseCustom),
+            "FromGrid": ctk.CTkButton(self.master, text="From Grid",  command=self._addFromGrid),
+            "AvgGrid":  ctk.CTkButton(self.master, text="Avg Grid",   command=self.avgFromGrid),
+            "Offset":   ctk.CTkButton(self.master, text="Offset",     command=self._offset),
+            "Scale":    ctk.CTkButton(self.master, text="Linear",     command=self._scale),
+            "Ref":      ctk.CTkButton(self.master, text="Load Ref",   command=self.loadReference),
+            "ShowRef":  ctk.CTkButton(self.master, text="Show Ref",   command=self.showReference),
+            # "RemRef":   ctk.CTkButton(self.master, text="Remove Ref", command=self.removeReference),  # See how it goes getting rid of this, now that fitPanel exists
+            "Channel":  ctk.CTkButton(self.master, text="Current (A)",command=self._cycleChannel),
+            "Undo":     ctk.CTkButton(self.master, text="Undo Last",  command=self._undo),
+            "Reset":    ctk.CTkButton(self.master, text="Reset",      command=self._reset),
+            "Inset":    ctk.CTkButton(self.master, text="Inset",      command=super().addInset),
+            "Imprint":  ctk.CTkButton(self.master, text="Imprint",    command=super()._imprint),
+            "Fitting":  ctk.CTkButton(self.master, text="Fit",        command=self.mainPanel.fitPanel.create),
+            "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
            
     def special(self):                                                          # Special canvas UI
-        self.slider = tk.Scale(self.master, orient=tk.HORIZONTAL, from_=0, to=9, length=420, command=self.smoothing) # Slider to select which bias/sweep signal slice to look show
-        self.slider.grid(row=9,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
+        self.slider = ctk.CTkSlider(self.master, orient=tk.HORIZONTAL, from_=0, to=9, width=420, command=self.smoothing) # Slider to select which bias/sweep signal slice to look show
+        self.slider.grid(row=10,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
 
     def removeSpecial(self):
         self.slider.grid_forget()                                               # Called when panel is closed
@@ -76,7 +79,9 @@ class STSPanel(Panel):
         
         self.canvas.figure = self.fig                                           # Assign the figure to the canvas
         self.canvas.draw()                                                      # Redraw the canvas with the updated figure
-    
+        
+        self.mainPanel.fitPanel.update()
+        
     def plotReference(self):
         if(not self.showRef): return
         V,didv = self.getDIDV(self.referencePath)
@@ -215,7 +220,7 @@ class STSPanel(Panel):
             self.showRef = False
         self.update()
     
-    def getReferenceForCurve(self,x):
+    def getReferenceForCurve(self,x,reference=[]):
         """
         This function is useful when the reference spectra is not exactly the 
         same range/number of points as the data. To return a valid reference, 
@@ -224,9 +229,11 @@ class STSPanel(Panel):
         greater than the number of points in the reference spectrum in the 
         overlapping region
         """
-        if(not self.referencePath): return 0
+        if(not len(reference)):
+            if(not self.referencePath): return 0*x
+            reference = self.reference
         try:
-            return np.interp(x, self.reference[0], self.reference[1])
+            return np.interp(x, reference[0], reference[1])
         except Exception as e:
             print(e)
             return 0
