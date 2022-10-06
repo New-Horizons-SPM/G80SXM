@@ -18,11 +18,12 @@ class FitPanel(Panel):
     componentIdx = -1
     forms = {}
     formActive = False
+    curve = []
     ###########################################################################
     # Constructor
     ###########################################################################
     def __init__(self, master, width, height, dpi, mainPanel):
-        super().__init__(master, width, height, dpi, mainPanel=mainPanel)
+        super().__init__(master, width, height, dpi, mainPanel=mainPanel,length=8,btnSize=2)
         self.buttons()
         self.reset()
         
@@ -84,9 +85,9 @@ class FitPanel(Panel):
         
         idr += 1
         self.forms[name]['buttons'] = []
-        self.forms[name]['buttons'].append([ctk.CTkButton(self.master, text="submit", command=lambda n=name: self.submitForm(n)),row+idr,self.pos + 1])
-        self.forms[name]['buttons'].append([ctk.CTkButton(self.master, text="cancel", command=lambda n=name: self.cancelForm(n)),row+idr,self.pos + 2])
-        self.forms[name]['buttons'].append([ctk.CTkButton(self.master, text="remove", command=lambda n=name: self.removeForm(n)),row+idr,self.pos + 3])
+        self.forms[name]['buttons'].append([ctk.CTkButton(self.master, text="submit", command=lambda n=name: self.submitForm(n)),row+idr,self.pos])
+        self.forms[name]['buttons'].append([ctk.CTkButton(self.master, text="cancel", command=lambda n=name: self.cancelForm(n)),row+idr,self.pos])
+        self.forms[name]['buttons'].append([ctk.CTkButton(self.master, text="remove", command=lambda n=name: self.removeForm(n)),row+idr,self.pos])
         
     ###########################################################################
     # Update and Plotting
@@ -105,7 +106,6 @@ class FitPanel(Panel):
         
         self.canvas.figure = self.fig                                           # Assign the figure to the canvas
         self.canvas.draw()                                                      # Redraw the canvas with the updated figure
-        print(self.fitDict)
     
     def plotSTS(self):
         self.validateCurveIdx()
@@ -140,6 +140,7 @@ class FitPanel(Panel):
     def fit(self):
         model = 0
         pars = Parameters()
+        if(not self.curve): return
         xx = self.curve[0]
         yy = self.curve[1]
         if("Fermi-Dirac" in self.fitDict):
@@ -215,17 +216,20 @@ class FitPanel(Panel):
         self.formActive = True
         
         for l in self.forms[name]['labels']:
-            l[0].grid(row=l[1],column=l[2])
+            l[0].grid(row=l[1],column=l[2],columnspan=1)
+            l[0].configure(width=int(self.width/self.length),height=27)
             
         for idx,e in enumerate(self.forms[name]['entries']):
-            e[0].grid(row=e[1],column=e[2])
+            e[0].grid(row=e[1],column=e[2],columnspan=1)
+            e[0].configure(width=int(self.width/self.length),height=27)
             if(self.componentIdx < 0): continue
             e[0].delete(0,tk.END)
             e[0].insert(0,self.fitDict[name][self.componentIdx][idx])
         
-        for b in self.forms[name]['buttons']:
+        for idx,b in enumerate(self.forms[name]['buttons']):
             if(b[0].text == "remove" and self.componentIdx == -1): continue  # Only show the 'remove' button if we're editing a selection
-            b[0].grid(row=b[1],column=b[2])
+            b[0].grid(row=b[1],column=b[2] + 2*idx,columnspan=2)
+            b[0].configure(width=int(self.width/self.length),height=27)
             
     def hideForm(self,name=""):
         self.formActive = False
