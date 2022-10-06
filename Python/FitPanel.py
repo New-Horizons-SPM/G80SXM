@@ -124,7 +124,7 @@ class FitPanel(Panel):
        
         self.ax.set_xlabel("Bias (V)")
         self.ax.set_ylabel("dI/dV (arb)")
-        self.ax.set_title("Point Spectroscopy")
+        self.ax.set_title("Curve Fitting")
     
     def plotFit(self):
         result = self.fit()
@@ -326,7 +326,7 @@ class FitPanel(Panel):
         return A*reference + c
     
     def pointSpecFunc(self,x,A,c,datFile):
-        datFile = self.fitDict['Point Spectrum'][datFile][6]
+        datFile = self.fitDict['Point-Spectrum'][datFile][6]
         ps = self.mainPanel.stsPanel.getDIDV(datFile=datFile)
         PS = self.mainPanel.stsPanel.getReferenceForCurve(x,reference=ps)
         return A*PS + c
