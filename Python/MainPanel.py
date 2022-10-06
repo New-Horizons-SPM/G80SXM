@@ -108,8 +108,8 @@ class MainPanel(Panel):
             "Correct":  ctk.CTkComboBox(self.master,values=["Corrections"],command=self.correction),    # Dropdown to place a HAT molecule
             "OpenPanel":ctk.CTkComboBox(self.master,values=["Open Panel"], command=self.openPanel),     # Dropdown to open other panels
             "Save":     ctk.CTkButton(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
-            "PNG":      ctk.CTkButton(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
             "Load":     ctk.CTkButton(self.master, text="Load",     command=self._load),                # Load a .g80 file
+            "PNG":      ctk.CTkButton(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
             "Quit":     ctk.CTkButton(self.master, text="Quit",     command=self.quit)                  # Button to quit the program
             }
         
@@ -125,6 +125,43 @@ class MainPanel(Panel):
         overlayValues = ["Overlay","Caption","Flip Scan","Rot Scan","Inset Color","Remove Inset"]
         self.btn['Overlay'].configure(values=overlayValues,fg_color=['#3B8ED0', '#1F6AA5'])
     
+    def buttonHelp(self):
+        helpStr = "Load in a new sxm file"
+        self.btn['Plot'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Change displayed channel"
+        self.btn['Channel'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Change the colour map"
+        self.btn['cmap'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Show/hide overlay features"
+        self.btn['Overlay'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Alternate function e.g. adjust image min saturation (shift active)\n or max saturation (shift inactive) by scrolling.\nCan also toggle by pressing Left Shift on the keyboard"
+        self.btn['Shift'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Draw atoms on from a .xyz file.\n"
+        self.btn['DrawAtoms'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Perform image corrections such as tilting, flipping, and rotating"
+        self.btn['Correct'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Open another processing window"
+        self.btn['OpenPanel'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Save this session to a .g80 file (Work in progress)"
+        self.btn['Save'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Export the main panel plot as a png"
+        self.btn['PNG'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Load in a session from a .g80 file (Work in progress)"
+        self.btn['Load'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Quit the program"
+        self.btn['Quit'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
     def reorderPanels(self,destroyIdx):
         # self.panels[destroyIdx].destroy()
         for panel in self.panels:
@@ -743,9 +780,9 @@ class MainPanel(Panel):
         if(option == "Plane Fit"):
             self.planeFit()
         if(option == "Flip"):
-            self._flipScan()
+            self.flipScan()
         if(option == "Rotate"):
-            self._rotateScan()
+            self.rotateScan()
             
     def tilt(self):                                                             # This will eventually take tiltFactor as a user input
         if(self.tiltActive):
