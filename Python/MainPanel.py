@@ -15,6 +15,7 @@ from STSPanel import STSPanel
 from FilterPanel import FilterPanel
 # from AIMLPanel import AIMLPanel
 from GridPanel import GridPanel
+from FitPanel import FitPanel
 import numpy as np
 import nanonispy as nap
 import nanonispyfit as napfit
@@ -88,11 +89,14 @@ class MainPanel(Panel):
         
         self.linePanel = LineProfilePanel(*commonParams)                        # 1D Line Plot: Plots 1D lines through a cursor
         self.fftPanel  = FFTPanel(*commonParams)
+        self.fitPanel = FitPanel(*commonParams)                                 # Curve fitting panel
         self.stsPanel  = STSPanel(*commonParams)
         self.fltPanel  = FilterPanel(*commonParams)
         # self.aimlPanel = AIMLPanel(*commonParams)
         self.gridPanel = GridPanel(*commonParams)
         
+        self.panels = [self.linePanel, self.fftPanel, self.stsPanel, self.fltPanel, self.gridPanel, self.fitPanel
+                       ]
     def buttons(self):
         self.btn = {
             "Plot":     ctk.CTkButton(self.master, text="Load SXM", command=self.loadSXM),              # Button to plot a new sxm
@@ -120,6 +124,29 @@ class MainPanel(Panel):
         
         overlayValues = ["Overlay","Caption","Flip Scan","Rot Scan","Inset Color","Remove Inset"]
         self.btn['Overlay'].configure(values=overlayValues,fg_color=['#3B8ED0', '#1F6AA5'])
+    
+    def reorderPanels(self,destroyIdx):
+        # self.panels[destroyIdx].destroy()
+        for panel in self.panels:
+            if(panel.active):
+                if(panel.pos > destroyIdx):
+                    panel.destroy()
+                    panel.pos -= self.panels[destroyIdx].length
+                    panel.create()
+    
+    def getPos(self):
+        pos = 4
+        for panel in self.panels:
+            if(panel.active):
+                pos += panel.length
+        return pos
+    
+    def adjustWindowSize(self):
+        windowWidth = self.width
+        for panel in self.panels:
+            if(panel.active):
+                windowWidth += panel.width
+        self.master.geometry("%dx%d" % (windowWidth,800))
         
     ###########################################################################
     # Main Panel Updates

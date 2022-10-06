@@ -355,6 +355,7 @@ class GridPanel(Panel):
         self.update()
         
     def getBias(self):
+        if(not self.gridData): return np.nan
         return self.gridData.signals['sweep_signal'][self.bias]                 # Convert bias index to actual bias value
     
     def _toggleCaption(self):

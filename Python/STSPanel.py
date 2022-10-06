@@ -14,7 +14,6 @@ import nanonispy as nap
 import math
 from scipy.signal import savgol_filter as savgol
 import matplotlib.patheffects as patheffects
-from FitPanel import FitPanel
 
 class STSPanel(Panel):
     datFile = []; stsPos = []; stsOffset = False                                # list of .dat filenames. stspos: location of xy pos 
@@ -32,16 +31,10 @@ class STSPanel(Panel):
     ###########################################################################
     def __init__(self, master, width, height, dpi, mainPanel):
         super().__init__(master, width, height, dpi, mainPanel=mainPanel)
-        self.buildSubPanels()
         self.buttons()
     ###########################################################################
     # Panel
     ###########################################################################
-    def buildSubPanels(self):                                                   # Sub panels are build in here. add new ones here first
-        commonParams = [self.master, self.width, self.height, self.dpi, self.mainPanel]
-        
-        self.fitPanel = FitPanel(*commonParams)                                 # Curve fitting panel
-        
     def buttons(self):
         self.btn = {
             "Multi":    ctk.CTkButton(self.master, text="Add Multi",  command=self._browseMulti),
@@ -59,7 +52,7 @@ class STSPanel(Panel):
             "Reset":    ctk.CTkButton(self.master, text="Reset",      command=self._reset),
             "Inset":    ctk.CTkButton(self.master, text="Inset",      command=super().addInset),
             "Imprint":  ctk.CTkButton(self.master, text="Imprint",    command=super()._imprint),
-            "Fitting":  ctk.CTkButton(self.master, text="Fit",        command=self.fitPanel.create),
+            "Fitting":  ctk.CTkButton(self.master, text="Fit",        command=self.mainPanel.fitPanel.create),
             "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
            
@@ -87,7 +80,7 @@ class STSPanel(Panel):
         self.canvas.figure = self.fig                                           # Assign the figure to the canvas
         self.canvas.draw()                                                      # Redraw the canvas with the updated figure
         
-        self.fitPanel.update()
+        self.mainPanel.fitPanel.update()
         
     def plotReference(self):
         if(not self.showRef): return
