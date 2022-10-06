@@ -6,7 +6,8 @@ Created on Fri Apr  8 15:00:50 2022
 """
 
 from Panel import Panel
-import tkinter as tk
+# import tkinter as tk
+import customtkinter as ctk
 from   tkinter import filedialog
 from LineProfilePanel import LineProfilePanel
 from FFTPanel import FFTPanel
@@ -14,6 +15,7 @@ from STSPanel import STSPanel
 from FilterPanel import FilterPanel
 # from AIMLPanel import AIMLPanel
 from GridPanel import GridPanel
+from FitPanel import FitPanel
 import numpy as np
 import nanonispy as nap
 import nanonispyfit as napfit
@@ -87,39 +89,65 @@ class MainPanel(Panel):
         
         self.linePanel = LineProfilePanel(*commonParams)                        # 1D Line Plot: Plots 1D lines through a cursor
         self.fftPanel  = FFTPanel(*commonParams)
+        self.fitPanel = FitPanel(*commonParams)                                 # Curve fitting panel
         self.stsPanel  = STSPanel(*commonParams)
         self.fltPanel  = FilterPanel(*commonParams)
         # self.aimlPanel = AIMLPanel(*commonParams)
         self.gridPanel = GridPanel(*commonParams)
         
+        self.panels = [self.linePanel, self.fftPanel, self.stsPanel, self.fltPanel, self.gridPanel, self.fitPanel
+                       ]
     def buttons(self):
         self.btn = {
-            "Plot":     tk.Button(self.master, text="Load SXM", command=self.loadSXM),              # Button to plot a new sxm
-            "DrawHAT":  tk.Button(self.master, text="HAT.xyz",  command=lambda: self.placeMolecule("../xyz/HAT.xyz")), # Button to place a HAT molecule
-            "DrawDCA":  tk.Button(self.master, text="DCA.xyz",  command=lambda: self.placeMolecule("../xyz/DCA.xyz")), # Button to place a DCA molecule
-            "DrawCu":   tk.Button(self.master, text="Cu.xyz",   command=lambda: self.placeMolecule("../xyz/Cu.xyz")),  # Button to place a Cu atom
-            "Undo":     tk.Button(self.master, text="Undo",     command=self.undoMolecule),         # Button to place a Cu atom
-            "cmap":     tk.Button(self.master, text="viridis",  command=super()._cmap),             # Button to cycle through colour maps
-            "Tilt":     tk.Button(self.master, text="Tilt",     command=self.tilt),                 # Button to tilt correct an image using arrow keys
-            "PlaneFit": tk.Button(self.master, text="Plane Fit",command=self.planeFit),             # Button to plane fit an area and subtract from image (like tilt but auto)
-            "Shift":    tk.Button(self.master, text="Shift",    command=self.toggleShiftL),         # Button to toggle shift mode
-            "Caption":  tk.Button(self.master, text="Caption",  command=self._toggleCaption),       # Toggle the plot caption
-            "Profiles": tk.Button(self.master, text="Profiles", command=self.linePanel.create),     # Button to activate 1D Profiles panel
-            "FFT":      tk.Button(self.master, text="FFT",      command=self.fftPanel.create),      # Button to activate FFT panel
-            "STS":      tk.Button(self.master, text="STS",      command=self.stsPanel.create),      # Button to activate STS panel
-            "Filter":   tk.Button(self.master, text="Filter",   command=self.fltPanel.create),      # Button to activate Filter panel
-            # "AIML":     tk.Button(self.master, text="LabelMode",command=self.aimlPanel.create),     # Button to activate AI machine learning data labeler
-            "Grid":     tk.Button(self.master, text="STSGrid",  command=self.gridPanel.create),     # Button to activate AI machine learning data labeler
-            "InsetCol": tk.Button(self.master, text="Inset Col",command=self._insetCmap),           # Change the inset font and line colours
-            "RemInset": tk.Button(self.master, text="Rem Inset",command=self._removeInset),         # Remove the inset from main panel
-            "FlipIm":   tk.Button(self.master, text="Flip scan",command=self._flipScan),            # Flip the current scan
-            "RotIm":    tk.Button(self.master, text="Rotate",   command=self._rotateScan),          # Flip the current scan
-            "Channel":  tk.Button(self.master, text="Z (m)",    command=self._channel),             # Flip the current scan
-            "Save":     tk.Button(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
-            "PNG":      tk.Button(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
-            "Load":     tk.Button(self.master, text="Load",     command=self._load),                # Load a .g80 file
-            "Quit":     tk.Button(self.master, text="Quit",     command=self.quit)                  # Button to quit the program
+            "Plot":     ctk.CTkButton(self.master, text="Load SXM", command=self.loadSXM),              # Button to plot a new sxm
+            "Channel":  ctk.CTkButton(self.master, text="Z (m)",    command=self._channel),             # Channel to display
+            "cmap":     ctk.CTkButton(self.master, text="viridis",  command=super()._cmap),             # Button to cycle through colour maps
+            "Overlay":  ctk.CTkComboBox(self.master,values=["Overlay"],    command=self.overlay),       # Dropdown to change overlay display
+            "Shift":    ctk.CTkButton(self.master, text="Shift",    command=self.toggleShiftL),         # Button to toggle shift mode
+            "DrawAtoms":ctk.CTkComboBox(self.master,values=["Draw Atoms"], command=self.placeMolecule), # Button to place a HAT molecule
+            "Correct":  ctk.CTkComboBox(self.master,values=["Corrections"],command=self.correction),    # Dropdown to place a HAT molecule
+            "OpenPanel":ctk.CTkComboBox(self.master,values=["Open Panel"], command=self.openPanel),     # Dropdown to open other panels
+            "Save":     ctk.CTkButton(self.master, text="Save",     command=self._save),                # Save all active panels to a .g80 file
+            "PNG":      ctk.CTkButton(self.master, text="Exp PNG",  command=self._exportPNG),           # Export the canvas to png
+            "Load":     ctk.CTkButton(self.master, text="Load",     command=self._load),                # Load a .g80 file
+            "Quit":     ctk.CTkButton(self.master, text="Quit",     command=self.quit)                  # Button to quit the program
             }
+        
+        drawAtomValues = ["Draw Atoms","HAT","DCA","Cu","Custom.xyz","Undo","Reset"]
+        self.btn['DrawAtoms'].configure(values=drawAtomValues,fg_color=['#3B8ED0', '#1F6AA5'])
+        
+        correctionValues = ["Corrections","Manual Tilt","Plane Fit","Flip","Rotate"]
+        self.btn['Correct'].configure(values=correctionValues,fg_color=['#3B8ED0', '#1F6AA5'])
+        
+        openPanelValues = ["Open Panel","Profiles","FFT","STS","Grid","Filter"]
+        self.btn['OpenPanel'].configure(values=openPanelValues,fg_color=['#3B8ED0', '#1F6AA5'])
+        
+        overlayValues = ["Overlay","Caption","Flip Scan","Rot Scan","Inset Color","Remove Inset"]
+        self.btn['Overlay'].configure(values=overlayValues,fg_color=['#3B8ED0', '#1F6AA5'])
+    
+    def reorderPanels(self,destroyIdx):
+        # self.panels[destroyIdx].destroy()
+        for panel in self.panels:
+            if(panel.active):
+                if(panel.pos > destroyIdx):
+                    panel.destroy()
+                    panel.pos -= self.panels[destroyIdx].length
+                    panel.create()
+    
+    def getPos(self):
+        pos = 4
+        for panel in self.panels:
+            if(panel.active):
+                pos += panel.length
+        return pos
+    
+    def adjustWindowSize(self):
+        windowWidth = self.width
+        for panel in self.panels:
+            if(panel.active):
+                windowWidth += panel.width
+        self.master.geometry("%dx%d" % (windowWidth,800))
+        
     ###########################################################################
     # Main Panel Updates
     ###########################################################################
@@ -328,7 +356,7 @@ class MainPanel(Panel):
             self.fig.axes[1].yaxis.label.set_color(self.insetColours[self.insetCmap])
             self.fig.axes[1].xaxis.label.set_color(self.insetColours[self.insetCmap])
         
-    def _removeInset(self):
+    def removeInset(self):
         if(len(self.fig.axes) > 1):                                             # If there is a secondary set of axes on the sxm figure, remove it
             self.fig.axes[1].remove()
             self.update(upd=[])
@@ -515,9 +543,22 @@ class MainPanel(Panel):
     ###########################################################################
     # Placing Molecules
     ###########################################################################
-    def placeMolecule(self,filename):
-        if(not filename):
+    def placeMolecule(self,name):
+        if(name == "Draw Atoms"): return
+        if(name == "Undo"):
+            self.undoMolecule()
+            self.btn['DrawAtoms'].set("Draw Atoms")
+            return
+        if(name == "Reset"):
+            self.resetMolecule()
+            self.btn['DrawAtoms'].set("Draw Atoms")
+            return
+        
+        filename = "../xyz/" + name + ".xyz"
+        if(name == "Custom.xyz"):
             filename = self._browseFile()
+            if(not filename): return
+            
         self.curMol = filename
         self._placeMoleculeBind()
         
@@ -551,6 +592,7 @@ class MainPanel(Panel):
         self.bound = False
         
         self.updateHelpLabel("")
+        self.btn['DrawAtoms'].set("Draw Atoms")
     
     def _rotUpMolecule(self,event):
         if(self.shiftL):
@@ -609,7 +651,7 @@ class MainPanel(Panel):
         
         self.atoms.append(atoms)
         
-        self._placeMoleculeUnbind()
+        # self._placeMoleculeUnbind()
         
         self.update(upd=[0])
     
@@ -667,6 +709,15 @@ class MainPanel(Panel):
         self.molRotY  = self.molRotY[:-1]
         self.molPos   = self.molPos[:-1]
         self.update(upd=[0])
+    
+    def resetMolecule(self):
+        self.atoms    = []
+        self.molFiles = []
+        self.molRot   = []
+        self.molRotX  = []
+        self.molRotY  = []
+        self.molPos   = []
+        self.update(upd=[0])
         
     ###########################################################################
     # STS Grid Box
@@ -684,8 +735,18 @@ class MainPanel(Panel):
             self.ax.add_patch(r)
             
     ###########################################################################
-    # Tilt Methods
+    # Correction - Tilt
     ###########################################################################
+    def correction(self,option):
+        if(option == "Manual Tilt"):
+            self.tilt()
+        if(option == "Plane Fit"):
+            self.planeFit()
+        if(option == "Flip"):
+            self._flipScan()
+        if(option == "Rotate"):
+            self._rotateScan()
+            
     def tilt(self):                                                             # This will eventually take tiltFactor as a user input
         if(self.tiltActive):
             self._setTilt()
@@ -719,7 +780,7 @@ class MainPanel(Panel):
         self.rightTiltBind  = self.canvas.get_tk_widget().bind('<Right>',   self._rightTilt)   # Right arrow key bind
         self.leftTiltBind   = self.canvas.get_tk_widget().bind('<Left>',    self._leftTilt)    # Left arrow key bind
         self.tiltActive = True                                                  
-        self.btn['Tilt'].configure(bg='Red')
+        self.btn['Correct'].configure(fg_color='Red')
         
         self.updateHelpLabel("Use the arrow keys to tilt the image. Recommend openning the Profiles Panel\n"
                              + "Shift inactive: fine tilt\nShift active: course tilt\n"
@@ -733,10 +794,11 @@ class MainPanel(Panel):
         self.canvas.get_tk_widget().unbind('<Right>',   self.rightTiltBind)
         self.canvas.get_tk_widget().unbind('<Left>',    self.leftTiltBind)
         self.tiltActive = False
-        self.btn['Tilt'].configure(bg='SystemButtonFace')
+        self.btn['Correct'].configure(fg_color=['#3B8ED0', '#1F6AA5'])
         self.bound = False
         
         self.updateHelpLabel("")
+        self.btn['Correct'].set("Corrections")
     
     def _upTilt(self,event=[]):
         self.curTilt[0][2] -= self.tiltFactor
@@ -764,7 +826,7 @@ class MainPanel(Panel):
         self._tiltUnbind()
         self.update()
     ###########################################################################
-    # Plane fit
+    # Correction - Plane fit
     ###########################################################################
     def planeFit(self):
         self.planeFitBind()
@@ -777,7 +839,8 @@ class MainPanel(Panel):
         self.motionPFBind   = self.canvas.get_tk_widget().bind('<Motion>',   self.placePlaneFitArea)
         self.curPlaneFitArea = [[0,0],[0,0]]
         self.planeFitCursor = 0
-        
+                                   
+        self.btn['Correct'].configure(fg_color='Red')
         self.updateHelpLabel("Click at two locations on the image to highlight region to plane fit.")
         
     def planeFitUnbind(self):
@@ -788,6 +851,8 @@ class MainPanel(Panel):
         self.bound = False
         
         self.updateHelpLabel("")
+        self.btn['Correct'].set("Corrections")
+        self.btn['Correct'].configure(fg_color=['#3B8ED0', '#1F6AA5'])
         
     def placePlaneFitArea(self,event):
         size = self.fig.get_size_inches()*self.fig.dpi                          # size in pixels
@@ -859,8 +924,9 @@ class MainPanel(Panel):
         # self.tiltFactor = 1e-14*(19*self.shiftL + 1)                            # Here, shift toggles the tiltFactor
         self.tiltFactor = (900*self.shiftL + 100)                               # Here, shift toggles the tiltFactor
         
-        btnColour = ['SystemButtonFace','red']                                  # Highlight the shift button red when shift is active
-        self.btn['Shift'].configure(bg = btnColour[self.shiftL])
+        btnColour = [['#3B8ED0', '#1F6AA5'],'red']                     # Highlight the shift button red when shift is active
+        self.btn['Shift'].configure(fg_color=btnColour[self.shiftL])
+        
     ###########################################################################
     # Save
     ###########################################################################
@@ -973,7 +1039,7 @@ class MainPanel(Panel):
     ###########################################################################
     # Misc
     ###########################################################################
-    def _toggleCaption(self):
+    def toggleCaption(self):
         self.plotCaption = not self.plotCaption
         self.update(upd=[0])
         
@@ -997,11 +1063,27 @@ class MainPanel(Panel):
         self.vmax = np.max(self.finalim)
         self.update(upd=[0])
         
-    def _flipScan(self):
+    def openPanel(self,option):
+        if(option == "Profiles"): self.linePanel.create()
+        if(option == "FFT"):      self.fftPanel.create()
+        if(option == "STS"):      self.stsPanel.create()
+        if(option == "Filter"):   self.fltPanel.create()
+        if(option == "Grid"):     self.gridPanel.create()
+        self.btn['OpenPanel'].set("Open Panel")
+        
+    def overlay(self,option):
+        if(option == "Caption"):        self.toggleCaption()
+        if(option == "Inset Color"):    self._insetCmap()
+        if(option == "Remove Inset"):   self.removeInset()
+        if(option == "Flip Scan"):      self.flipScan()
+        if(option == "Rot Scan"):       self.rotateScan()
+        self.btn['Overlay'].set("Overlay")
+        
+    def flipScan(self):
         self.im = np.flipud(self.im)
         self.update()
     
-    def _rotateScan(self):
+    def rotateScan(self):
         self.im = np.rot90(self.im)
         self.update()
         

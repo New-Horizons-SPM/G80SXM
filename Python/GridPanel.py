@@ -12,6 +12,7 @@ from ase.visualize.plot import plot_atoms
 import copy
 from Panel import Panel
 import tkinter as tk
+import customtkinter as ctk
 import math
 
 class GridPanel(Panel):
@@ -46,23 +47,23 @@ class GridPanel(Panel):
     ###########################################################################
     def buttons(self):
         self.btn = {
-            "load3ds":  tk.Button(self.master, text="Load 3ds",   command=self.load3ds),            # Load a 3ds file
-            "cmap":     tk.Button(self.master, text="viridis",    command=super()._cmap),           # Button to cycle through colour maps
-            "Inset":    tk.Button(self.master, text="Inset",      command=super().addInset),        # Inset this into the main panel
-            "Imprint":  tk.Button(self.master, text="Imprint",    command=super()._imprint),        # Imprint the spectra on STS panel
-            "UndoPt":   tk.Button(self.master, text="Undo Point", command=self._undo),              # Undo the last point spectra on STS panel
-            "UndoAvg":  tk.Button(self.master, text="Undo Avg",   command=self.undoAverage),        # Undo the last point spectra on STS panel
-            "Reset":    tk.Button(self.master, text="Reset",      command=self._reset),             # Remove all point spectra from STS panel
-            "PullMol":  tk.Button(self.master, text="Pull Mol",   command=self.pullMolecules),      # Pull in molecules plotted on the main panel
-            "ClearMol": tk.Button(self.master, text="Clear Mol",  command=self.clearMolecules),     # Clear all molecules from grid overlay
-            "Caption":  tk.Button(self.master, text="Caption",    command=self._toggleCaption),     # Toggle the plot caption
-            "ScaleBar": tk.Button(self.master, text="Scale Bar",  command=self._toggleScalebar),    # Toggle the plot scalebar
-            "Close":    tk.Button(self.master, text="Close",      command=self.destroy)             # Close the panel
+            "load3ds":  ctk.CTkButton(self.master, text="Load 3ds",   command=self.load3ds),            # Load a 3ds file
+            "cmap":     ctk.CTkButton(self.master, text="viridis",    command=super()._cmap),           # Button to cycle through colour maps
+            "Inset":    ctk.CTkButton(self.master, text="Inset",      command=super().addInset),        # Inset this into the main panel
+            "Imprint":  ctk.CTkButton(self.master, text="Imprint",    command=super()._imprint),        # Imprint the spectra on STS panel
+            "UndoPt":   ctk.CTkButton(self.master, text="Undo Point", command=self._undo),              # Undo the last point spectra on STS panel
+            "UndoAvg":  ctk.CTkButton(self.master, text="Undo Avg",   command=self.undoAverage),        # Undo the last point spectra on STS panel
+            "Reset":    ctk.CTkButton(self.master, text="Reset",      command=self._reset),             # Remove all point spectra from STS panel
+            "PullMol":  ctk.CTkButton(self.master, text="Pull Mol",   command=self.pullMolecules),      # Pull in molecules plotted on the main panel
+            "ClearMol": ctk.CTkButton(self.master, text="Clear Mol",  command=self.clearMolecules),     # Clear all molecules from grid overlay
+            "Caption":  ctk.CTkButton(self.master, text="Caption",    command=self._toggleCaption),     # Toggle the plot caption
+            "ScaleBar": ctk.CTkButton(self.master, text="Scale Bar",  command=self._toggleScalebar),    # Toggle the plot scalebar
+            "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)             # Close the panel
             }
     
     def special(self):                                                          # Special canvas UI
-        self.slider = tk.Scale(self.master, orient=tk.HORIZONTAL, from_=0, to=1, length=420, command=self.changeBias) # Slider to select which bias/sweep signal slice to look show
-        self.slider.grid(row=8,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
+        self.slider = ctk.CTkSlider(self.master, orient=tk.HORIZONTAL, from_=0, to=1, width=420, command=self.changeBias) # Slider to select which bias/sweep signal slice to look show
+        self.slider.grid(row=10,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
         if(self.gridData):                                                      # Figure out how many ticks the slider needs. 1 tick = 1 dV
             to = len(self.gridData.signals['sweep_signal']) - 1
             self.slider.configure(to=to)
@@ -342,6 +343,8 @@ class GridPanel(Panel):
     ###########################################################################
     def smooth(self):
         self.data    = []
+        if(not self.gridData): return
+        
         sweep = self.gridData.signals['sweep_signal']
         self.data.append(sweep)
         self.data.append(copy.deepcopy(self.gridData.signals[self.ychannel]))
@@ -352,6 +355,7 @@ class GridPanel(Panel):
         self.update()
         
     def getBias(self):
+        if(not self.gridData): return np.nan
         return self.gridData.signals['sweep_signal'][self.bias]                 # Convert bias index to actual bias value
     
     def _toggleCaption(self):
