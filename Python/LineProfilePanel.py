@@ -6,7 +6,6 @@ Created on Sat Apr  2 18:03:13 2022
 """
 
 from Panel import Panel
-import tkinter as tk
 import customtkinter as ctk
 import numpy as np
 import math
@@ -37,8 +36,8 @@ class LineProfilePanel(Panel):
             "Add Cursor"    : ctk.CTkButton(self.master, text="Add Cursor", command=self.addCursor),
             "Rem Cursor"    : ctk.CTkButton(self.master, text="Rem Cursor", command=self.remCursor),
             "Next Cursor"   : ctk.CTkButton(self.master, text="Next Cursor",command=self.nextCursor),
-            "Cursor 1"      : ctk.CTkButton(self.master, text="Cursor 1",   command=lambda:self.cursor(0)),
-            "Cursor 2"      : ctk.CTkButton(self.master, text="Cursor 2",   command=lambda:self.cursor(1)),
+            "Cursor 1"      : ctk.CTkButton(self.master, text="Main Cursor",   command=lambda:self.cursor(0)),
+            "Cursor 2"      : ctk.CTkButton(self.master, text="Secondary Cursor",   command=lambda:self.cursor(1)),
             "Info"          : ctk.CTkButton(self.master, text="Toggle Info",command=self.toggleShowInfo),
             "LineColour"    : ctk.CTkButton(self.master, text="Line Colour",command=self.changeLineColour),
             "Fit Steps"     : ctk.CTkButton(self.master, text="Fit Steps",  command=self.fitSteps),
@@ -47,6 +46,24 @@ class LineProfilePanel(Panel):
             "Close"         : ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
     
+    def buttonHelp(self):
+        helpStr = "Toggle between XY and Point-toPoint modes.\nXY mode plots horizontal and vertical cuts through the sxm image at a point defined by\n'Main Cursor'.\nPoint-to-Point mode plots a line segment defined by 'Main Cursor' and 'Secondary Cursor'"
+        self.btn['Mode'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Add a new set of cursors (Point-to-Point)"
+        self.btn['Add Cursor'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        # helpStr = ""
+        # self.btn['Mode'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        # helpStr = ""
+        # self.btn['Mode'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        # helpStr = ""
+        # self.btn['Mode'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        # helpStr = ""
+        # self.btn['Mode'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
     ###########################################################################
     # Update and Plotting
     ###########################################################################
@@ -205,14 +222,14 @@ class LineProfilePanel(Panel):
         if(self.activeCursor[1] == numCursors): self.activeCursor[1] = 0
         cidx = self.segInfo[self.activeCursor[1]][3]
         c = self.mainPanel.mplibColours[cidx]                                   # Colour of the next cursor
-        self.btn['Next Cursor'].configure(bg=c)
+        self.btn['Next Cursor'].configure(fg_color=c)
         self.mainPanel.update(upd=[0,1])
         
     def addCursor(self):
         self.cPos.append(np.array([[0.5,0.5],[0.75,0.75]]))                     # Just add this as initial cursor positions
         self.activeCursor[1] = len(self.cPos) - 1                               # Auto select this new cursor set
         c = self.mainPanel.mplibColours[self.activeCursor[1]]                   # Next colour in the list
-        self.btn['Next Cursor'].configure(bg=c)
+        self.btn['Next Cursor'].configure(fg_color=c)
         self.segInfo.append([-1,-1,1,self.activeCursor[1]])                     # Default to c colour and show segment info = 1
         self.fitLocations.append([])
         self.mainPanel.update(upd=[0,1])
@@ -243,7 +260,7 @@ class LineProfilePanel(Panel):
         
         cidx = self.segInfo[self.activeCursor[1]][3]
         c = self.mainPanel.mplibColours[cidx]
-        self.btn['Next Cursor'].configure(bg=c)
+        self.btn['Next Cursor'].configure(fg_color=c)
         self.mainPanel.update(upd=[0,1])
     ###########################################################################
     # Fitting Step Edges

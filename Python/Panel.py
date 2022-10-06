@@ -93,7 +93,10 @@ class Panel():
     def updateHelpLabel(self,helpText):
         self.helpText = helpText
         self.helpLabel.configure(text=helpText)
-        
+    
+    def buttonHelp(self):                                                       # Override this
+        pass
+    
     def create(self):                                                           # Displays the panel to the right of the previous one
         if(self.mainPanel):
             if(not self.mainPanel.init): return
@@ -109,6 +112,7 @@ class Panel():
         self.addButtons()                                                       # Display the buttons
         self.special()
         self._helpLabel()
+        self.buttonHelp()
         self.active = True
         self.update()
         if(self.mainPanel):
