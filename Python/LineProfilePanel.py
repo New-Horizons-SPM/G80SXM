@@ -32,38 +32,59 @@ class LineProfilePanel(Panel):
     ###########################################################################
     def buttons(self):
         self.btn = {
-            "Mode"          : ctk.CTkButton(self.master, text="Mode: xy",   command=self.toggleMode),
-            "Add Cursor"    : ctk.CTkButton(self.master, text="Add Cursor", command=self.addCursor),
-            "Rem Cursor"    : ctk.CTkButton(self.master, text="Rem Cursor", command=self.remCursor),
-            "Next Cursor"   : ctk.CTkButton(self.master, text="Next Cursor",command=self.nextCursor),
-            "Cursor 1"      : ctk.CTkButton(self.master, text="Main Cursor",   command=lambda:self.cursor(0)),
-            "Cursor 2"      : ctk.CTkButton(self.master, text="Secondary Cursor",   command=lambda:self.cursor(1)),
-            "Info"          : ctk.CTkButton(self.master, text="Toggle Info",command=self.toggleShowInfo),
-            "LineColour"    : ctk.CTkButton(self.master, text="Line Colour",command=self.changeLineColour),
-            "Fit Steps"     : ctk.CTkButton(self.master, text="Fit Steps",  command=self.fitSteps),
-            "Inset"         : ctk.CTkButton(self.master, text="Inset",      command=super().addInset),
-            "Imprint"       : ctk.CTkButton(self.master, text="Imprint",    command=super()._imprint),
-            "Close"         : ctk.CTkButton(self.master, text="Close",      command=self.destroy)
+            "Mode"          : ctk.CTkButton(self.master, text="Mode: xy",       command=self.toggleMode),
+            "Add Cursor"    : ctk.CTkButton(self.master, text="Add Line",       command=self.addCursor),
+            "Rem Cursor"    : ctk.CTkButton(self.master, text="Remove Line",    command=self.remCursor),
+            "Next Cursor"   : ctk.CTkButton(self.master, text="Next Cursor",    command=self.nextCursor),
+            "Cursor 1"      : ctk.CTkButton(self.master, text="P1 Location",    command=lambda:self.cursor(0)),
+            "Cursor 2"      : ctk.CTkButton(self.master, text="P2 Location",    command=lambda:self.cursor(1)),
+            "Info"          : ctk.CTkComboBox(self.master,values=["Line Info"], command=self.labelInfo),
+            "LineColour"    : ctk.CTkButton(self.master, text="Line Colour",    command=self.changeLineColour),
+            "Fit Steps"     : ctk.CTkButton(self.master, text="Fit Steps",      command=self.fitSteps),
+            "Inset"         : ctk.CTkButton(self.master, text="Inset",          command=super().addInset),
+            "Imprint"       : ctk.CTkButton(self.master, text="Imprint",        command=super()._imprint),
+            "Close"         : ctk.CTkButton(self.master, text="Close",          command=self.destroy)
             }
-    
+        
+        infoValues = ["Line Info","Show/Hide","Move (Coming)"]
+        self.btn['Info'].configure(values=infoValues,fg_color=['#3B8ED0', '#1F6AA5'])
+        
     def buttonHelp(self):
-        helpStr = "Toggle between XY and Point-toPoint modes.\nXY mode plots horizontal and vertical cuts through the sxm image at a point defined by\n'Main Cursor'.\nPoint-to-Point mode plots a line segment defined by 'Main Cursor' and 'Secondary Cursor'"
+        helpStr = "Toggle between XY and Point-toPoint modes.\nXY mode plots horizontal and vertical cuts through the sxm image at a point defined by 'P1'.\nPoint-to-Point mode plots a line segment defined by 'P1' and 'P2'"
         self.btn['Mode'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
-        helpStr = "Add a new set of cursors (Point-to-Point)"
+        helpStr = "Add a new line to the sxm plot (Point-to-Point Mode Only)"
         self.btn['Add Cursor'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
-        # helpStr = ""
-        # self.btn['Mode'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        helpStr = "Remove the currently selected line"
+        self.btn['Rem Cursor'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
-        # helpStr = ""
-        # self.btn['Mode'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        helpStr = "Cycle to the next line to modify its properties (Point-to-Point mode only)"
+        self.btn['Next Cursor'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
-        # helpStr = ""
-        # self.btn['Mode'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        helpStr = "Reposition the lines in XY mode or P1 in Point-to-Point mode by clicking on the main figure"
+        self.btn['Cursor 1'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
-        # helpStr = ""
-        # self.btn['Mode'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        helpStr = "Reposition P2 in Point-to-Point mode by clicking on the main figure"
+        self.btn['Cursor 2'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Show/Hide the line segment info or Move it by clicking on the main figure (Point-to-Point mode only)"
+        self.btn['Info'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Change the colour of the selected line (Point-toPoint mode only)"
+        self.btn['LineColour'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Fit step edges to the 1D line cuts by placing a cursor either side of each step edge"
+        self.btn['Fit Steps'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Add the above plot as an inset on the main figure. Double click a location in the main figure to repoisition the inset and use the scroll wheel to change its size"
+        self.btn['Inset'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Imprint the overlay drawn by this panel on the main figure so it persits after closing this panel"
+        self.btn['Imprint'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Close this panel"
+        self.btn['Close'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
     ###########################################################################
     # Update and Plotting
     ###########################################################################
@@ -217,6 +238,7 @@ class LineProfilePanel(Panel):
     # Multiple Cursors
     ###########################################################################
     def nextCursor(self):
+        if(not self.plotModes[self.plotMode] == "P1P2"): return
         numCursors = len(self.cPos)
         self.activeCursor[1] += 1
         if(self.activeCursor[1] == numCursors): self.activeCursor[1] = 0
@@ -226,6 +248,7 @@ class LineProfilePanel(Panel):
         self.mainPanel.update(upd=[0,1])
         
     def addCursor(self):
+        if(not self.plotModes[self.plotMode] == "P1P2"): return
         self.cPos.append(np.array([[0.5,0.5],[0.75,0.75]]))                     # Just add this as initial cursor positions
         self.activeCursor[1] = len(self.cPos) - 1                               # Auto select this new cursor set
         c = self.mainPanel.mplibColours[self.activeCursor[1]]                   # Next colour in the list
@@ -235,6 +258,7 @@ class LineProfilePanel(Panel):
         self.mainPanel.update(upd=[0,1])
     
     def remCursor(self):
+        if(not self.plotModes[self.plotMode] == "P1P2"): return
         if(len(self.cPos) > 1):                                                 # Keep at least one cursor there always
             del self.cPos[self.activeCursor[1]]                                 # Remove this cursor from the list
             del self.segInfo[self.activeCursor[1]]
@@ -247,12 +271,8 @@ class LineProfilePanel(Panel):
         self.btn['Next Cursor'].configure(bg=c)
         self.mainPanel.update(upd=[0,1])
     
-    def toggleShowInfo(self):
-        if(self.plotModes[self.plotMode] == "XY"): return
-        self.segInfo[self.activeCursor[1]][2] = not self.segInfo[self.activeCursor[1]][2]
-        self.mainPanel.update()
-    
     def changeLineColour(self):
+        if(not self.plotModes[self.plotMode] == "P1P2"): return
         numColours = len(self.mainPanel.mplibColours)
         self.segInfo[self.activeCursor[1]][3] += 1                              # Next colour in the list
         if(self.segInfo[self.activeCursor[1]][3] == numColours):
@@ -262,6 +282,16 @@ class LineProfilePanel(Panel):
         c = self.mainPanel.mplibColours[cidx]
         self.btn['Next Cursor'].configure(fg_color=c)
         self.mainPanel.update(upd=[0,1])
+        
+    ###########################################################################
+    # Move Label Info
+    ###########################################################################
+    def toggleShowInfo(self):
+        self.segInfo[self.activeCursor[1]][2] = not self.segInfo[self.activeCursor[1]][2]
+        self.mainPanel.update()
+    
+    def moveLabel(self):
+        pass
     ###########################################################################
     # Fitting Step Edges
     ###########################################################################
@@ -309,6 +339,15 @@ class LineProfilePanel(Panel):
         if(self.plotMode == len(self.plotModes)): self.plotMode = 0
         self.btn["Mode"].configure(text="Mode: " + self.plotModes[self.plotMode])
         self.mainPanel.update(upd=[0,1])
+        
+    def labelInfo(self,option):
+        if(not self.plotModes[self.plotMode] == "P1P2"):
+            self.btn['Info'].set("Line Info")
+            return
+        if(option == "Show/Hide"): self.toggleShowInfo()
+        if(option == "Move"): self.moveLabel()
+        self.btn['Info'].set("Line Info")
+        
     ###########################################################################
     # Save
     ###########################################################################

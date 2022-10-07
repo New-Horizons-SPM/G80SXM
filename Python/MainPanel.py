@@ -6,7 +6,6 @@ Created on Fri Apr  8 15:00:50 2022
 """
 
 from Panel import Panel
-# import tkinter as tk
 import customtkinter as ctk
 from   tkinter import filedialog
 from LineProfilePanel import LineProfilePanel
@@ -122,7 +121,7 @@ class MainPanel(Panel):
         openPanelValues = ["Open Panel","Profiles","FFT","STS","Grid","Filter"]
         self.btn['OpenPanel'].configure(values=openPanelValues,fg_color=['#3B8ED0', '#1F6AA5'])
         
-        overlayValues = ["Overlay","Caption","Flip Scan","Rot Scan","Inset Color","Remove Inset"]
+        overlayValues = ["Overlay","Caption","Inset Color","Remove Inset"]
         self.btn['Overlay'].configure(values=overlayValues,fg_color=['#3B8ED0', '#1F6AA5'])
     
     def buttonHelp(self):
@@ -138,7 +137,7 @@ class MainPanel(Panel):
         helpStr = "Show/hide overlay features"
         self.btn['Overlay'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
-        helpStr = "Alternate function e.g. adjust image min saturation (shift active)\n or max saturation (shift inactive) by scrolling.\nCan also toggle by pressing Left Shift on the keyboard"
+        helpStr = "Alternate function e.g. adjust image min saturation (shift active) or max saturation (shift inactive) by scrolling.\nCan also toggle by pressing Left Shift on the keyboard"
         self.btn['Shift'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
         helpStr = "Draw atoms on from a .xyz file.\n"
@@ -581,6 +580,9 @@ class MainPanel(Panel):
     # Placing Molecules
     ###########################################################################
     def placeMolecule(self,name):
+        if(not self.init):
+            self.btn['DrawAtoms'].set("Draw Atoms")
+            return
         if(name == "Draw Atoms"): return
         if(name == "Undo"):
             self.undoMolecule()
@@ -775,6 +777,9 @@ class MainPanel(Panel):
     # Correction - Tilt
     ###########################################################################
     def correction(self,option):
+        if(not self.init):
+            self.btn['Correct'].set("Corrections")
+            return
         if(option == "Manual Tilt"):
             self.tilt()
         if(option == "Plane Fit"):
@@ -968,6 +973,7 @@ class MainPanel(Panel):
     # Save
     ###########################################################################
     def _exportPNG(self,dpi=0):
+        if(not self.init): return
         if(not dpi): dpi = self.dpi
         initialfile = self.sxm.header['scan_file'].rsplit('\\',1)[1].rsplit('.')[0]
         
@@ -978,6 +984,7 @@ class MainPanel(Panel):
         self.fig.savefig(path,format='png',dpi=dpi)
                 
     def _save(self):
+        return
         saveString  = self._buildSaveString()
         saveString += self.linePanel.buildSaveString()
         saveString += self.fftPanel.buildSaveString()
@@ -1109,11 +1116,12 @@ class MainPanel(Panel):
         self.btn['OpenPanel'].set("Open Panel")
         
     def overlay(self,option):
+        if(not self.init):
+            self.btn['Overlay'].set("Overlay")
+            return
         if(option == "Caption"):        self.toggleCaption()
         if(option == "Inset Color"):    self._insetCmap()
         if(option == "Remove Inset"):   self.removeInset()
-        if(option == "Flip Scan"):      self.flipScan()
-        if(option == "Rot Scan"):       self.rotateScan()
         self.btn['Overlay'].set("Overlay")
         
     def flipScan(self):

@@ -215,7 +215,7 @@ class FitPanel(Panel):
     # Form Actions (Show, Submit, Cancel, Remove, etc.)
     ###########################################################################
     def showForm(self,name):
-        if(self.formActive): return
+        if(self.formActive): self.hideForm()
         self.formActive = True
         
         for l in self.forms[name]['labels']:
