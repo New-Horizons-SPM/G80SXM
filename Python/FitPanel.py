@@ -54,6 +54,7 @@ class FitPanel(Panel):
         params.append(['A','Amin','Amax'])
         params.append(['x0','x0min','x0max'])
         params.append(['T'])
+        params.append(['Tb','Tbmin','Tbmax'])
         self.buildForm(name="Fermi-Dirac", params=params)
         
         # Gaussian Form
@@ -149,11 +150,13 @@ class FitPanel(Panel):
             for idx,fd in enumerate(fermiDirac):
                 A  = fd[0]; Amin  = fd[1]; Amax  = fd[2]
                 x0 = fd[3]; x0min = fd[4]; x0max = fd[5]
-                kT = 8.617e-5*fd[6]
+                Tb = fd[6]; Tbmin = fd[7]; Tbmax = fd[8]
+                kT = 8.617e-5*fd[9]
                 
                 pars.add('FD' + str(idx) + '_A',  value=A,  min=Amin,  max=Amax)
                 pars.add('FD' + str(idx) + '_x0', value=x0, min=x0min, max=x0max)
                 pars.add('FD' + str(idx) + '_T',  value=-kT, vary=False)
+                pars.add('FD' + str(idx) + '_Tb', value=Tb, min=Tbmin, max=Tbmax)
                 pars.add('FD' + str(idx) + '_c',  value=A,  min=0,     max=2*A)
                 
                 fermiEdge.append(Model(self.fermiDiracFunc,prefix='FD' + str(idx) + '_'))
@@ -296,7 +299,7 @@ class FitPanel(Panel):
     ###########################################################################
     # Custom Fitting Curves (not in lmfit)
     ###########################################################################
-    def fermiDiracFunc(self,x, A, x0, T, c):
+    def fermiDiracFunc(self,x, A, x0, T, Tb, c):
         """
         Fermi-Dirac function
 
@@ -312,14 +315,7 @@ class FitPanel(Panel):
         Fermi-Dirac Function
 
         """
-        # step = x*0
-        # step[x < x0] = 0
-        # step[x >=x0] = A
-        # step += c
-        # return step
-        # return A*np.heaviside(x-x0,0.5) + c
-        # return -A/(np.exp((x-x0)/(-8.617e-5*T)) + 1) + c
-        return A/(1+np.exp((x0-x)/(-8.617e-5*T))) + c
+        return A/(1+np.exp((x0-x)/(-8.617e-5*T*Tb))) + c
     
     def referenceFunc(self,x,A,c):
         reference = self.mainPanel.stsPanel.getReferenceForCurve(x=x)
