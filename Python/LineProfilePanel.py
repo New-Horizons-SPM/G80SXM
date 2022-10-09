@@ -74,7 +74,7 @@ class LineProfilePanel(Panel):
         helpStr = "Change the colour of the selected line (Point-toPoint mode only)"
         self.btn['LineColour'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
-        helpStr = "Fit step edges to the 1D line cuts by placing a cursor either side of each step edge"
+        helpStr = "Fit step edges to the 1D line cuts by placing a cursor either side of each step edge.\nLeft click to place a cursor. Right click to end"
         self.btn['Fit Steps'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
         helpStr = "Add the above plot as an inset on the main figure. Double click a location in the main figure to repoisition the inset and use the scroll wheel to change its size"
