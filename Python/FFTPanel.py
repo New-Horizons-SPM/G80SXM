@@ -32,6 +32,25 @@ class FFTPanel(Panel):
             "Inset": ctk.CTkButton(self.master, text="Inset",       command=super().addInset),
             "Close": ctk.CTkButton(self.master, text="Close",       command=self.destroy)
             }
+    
+    def buttonHelp(self):
+        helpStr = "Change the colour map"
+        self.btn['cmap'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Place a point on the FFT"
+        self.btn['Place'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Undo the last placement"
+        self.btn['Undo'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Clear all data points"
+        self.btn['Reset'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Add the above plot as an inset on the main figure. Double click a location in the main figure to repoisition the inset and use the scroll wheel to change its size"
+        self.btn['Inset'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Close this panel"
+        self.btn['Close'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
     ###########################################################################
     # Update and Plotting
     ###########################################################################
@@ -105,7 +124,6 @@ class FFTPanel(Panel):
         y = size[1] - event.y
         X = super()._getX(x)
         Y = super()._getY(y)
-        
         self.fftLabel.append(np.array([X,Y]))
         self._fftDataPointUnbind()
         self.update()

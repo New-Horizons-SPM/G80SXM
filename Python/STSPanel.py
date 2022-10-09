@@ -37,28 +37,65 @@ class STSPanel(Panel):
     ###########################################################################
     def buttons(self):
         self.btn = {
-            "Multi":    ctk.CTkButton(self.master, text="Add Multi",  command=self._browseMulti),
-            "Single":   ctk.CTkButton(self.master, text="Add Single", command=self._browseSingle),
-            "Custom":   ctk.CTkButton(self.master, text="Add Custom", command=self._browseCustom),
-            "FromGrid": ctk.CTkButton(self.master, text="From Grid",  command=self._addFromGrid),
-            "AvgGrid":  ctk.CTkButton(self.master, text="Avg Grid",   command=self.avgFromGrid),
-            "Offset":   ctk.CTkButton(self.master, text="Offset",     command=self._offset),
-            "Scale":    ctk.CTkButton(self.master, text="Linear",     command=self._scale),
-            "Ref":      ctk.CTkButton(self.master, text="Load Ref",   command=self.loadReference),
-            "ShowRef":  ctk.CTkButton(self.master, text="Show Ref",   command=self.showReference),
+            "datSpec":  ctk.CTkComboBox(self.master, values=["STS.dat"],command=self.datSpec),
+            "GridSpec": ctk.CTkComboBox(self.master, values=["STS.grid"],command=self.gridSpec),
+            "Reference":ctk.CTkComboBox(self.master, values=["Reference"],command=self._reference),
             # "RemRef":   ctk.CTkButton(self.master, text="Remove Ref", command=self.removeReference),  # See how it goes getting rid of this, now that fitPanel exists
             "Channel":  ctk.CTkButton(self.master, text="Current (A)",command=self._cycleChannel),
-            "Undo":     ctk.CTkButton(self.master, text="Undo Last",  command=self._undo),
-            "Reset":    ctk.CTkButton(self.master, text="Reset",      command=self._reset),
+            "PlotProp": ctk.CTkComboBox(self.master, values=["Plot Props"],command=self.plotProps),
             "Inset":    ctk.CTkButton(self.master, text="Inset",      command=super().addInset),
             "Imprint":  ctk.CTkButton(self.master, text="Imprint",    command=super()._imprint),
             "Fitting":  ctk.CTkButton(self.master, text="Fit",        command=self.mainPanel.fitPanel.create),
             "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
-           
+        
+        datSpecValues = ["STS.dat","Add Single","Add Manual","Add Folder","Undo Last","Clear All"]
+        self.btn['datSpec'].configure(values=datSpecValues,fg_color=['#3B8ED0', '#1F6AA5'])
+        
+        gridSpecValues = ["STS.grid","Add Single","Add Averaged","Undo Single","Undo Averaged","Clear All"]
+        self.btn['GridSpec'].configure(values=gridSpecValues,fg_color=['#3B8ED0', '#1F6AA5'])
+        
+        gridSpecValues = ["Plot Props","Toggle Offset","Linear"]
+        self.btn['PlotProp'].configure(values=gridSpecValues,fg_color=['#3B8ED0', '#1F6AA5'])
+        
+        gridSpecValues = ["Reference","Load New","Hide"]
+        self.btn['Reference'].configure(values=gridSpecValues,fg_color=['#3B8ED0', '#1F6AA5'])
+        
+    def buttonHelp(self):
+        helpStr = "Add spectra from .dat file.\nAdd Single: Select a single .dat file and auto plot location on Main Figure.\nAdd Manual: Manually locate marker on main figure.\nAdd Folder: Plot all .dat files in the selected folder"
+        self.btn['datSpec'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Add spectra from the grid panel.(Grid panel must be active and a .3ds file loaded)\nAdd Single: Left click within the grid to plot a spectrum.\nAdd Averaged: Left click multiple locations to plot an averaged spectra. Right click to finish"
+        self.btn['GridSpec'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Change plot properties"
+        self.btn['PlotProp'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Load in a refrence .dat file. This will also be the reference used in the fitting panel"
+        self.btn['Reference'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Change data channel"
+        self.btn['Channel'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Add the above plot as an inset on the main figure. Double click a location in the main figure to repoisition the inset and use the scroll wheel to change its size"
+        self.btn['Inset'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Imprint the overlay drawn by this panel on the main figure so it persits after closing this panel"
+        self.btn['Imprint'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Close this panel"
+        self.btn['Close'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Open the curve fitting panel"
+        self.btn['Fitting'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Adjust the slider to smooth curves"
+        self.slider.bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
     def special(self):                                                          # Special canvas UI
         self.slider = ctk.CTkSlider(self.master, orient=tk.HORIZONTAL, from_=0, to=9, width=420, command=self.smoothing) # Slider to select which bias/sweep signal slice to look show
         self.slider.grid(row=10,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
+        self.slider.set(1)
 
     def removeSpecial(self):
         self.slider.grid_forget()                                               # Called when panel is closed
@@ -322,7 +359,7 @@ class STSPanel(Panel):
     ###########################################################################
     # Plot from location in STS Grid
     ###########################################################################
-    def _addFromGrid(self):
+    def addFromGrid(self):
         if(self.mainPanel.gridPanel.active):
             self.mainPanel.gridPanel.extractBind()
         
@@ -348,13 +385,10 @@ class STSPanel(Panel):
     
     def _scale(self):
         self.logScale = not self.logScale
-        text = ["Linear","Log"]
-        self.btn['Scale'].configure(text=text[self.logScale])
         self.update()
     
     def _offset(self):
         self.stsOffset = not self.stsOffset
-        self.btn['Offset'].configure(bg=['SystemButtonFace','red'][self.stsOffset])
         self.update()
         
     def _cycleChannel(self):                                                    # Do this better but for now...
@@ -366,6 +400,46 @@ class STSPanel(Panel):
         self.btn['Channel'].configure(text=self.dat_ychannel)
         
         self.update()
+        
+    def datSpec(self,option):
+        if(option == "Add Single"): self._browseSingle()
+        if(option == "Add Manual"): self._browseCustom()
+        if(option == "Add Folder"): self._browseMulti()
+        if(option == "Undo Last"):  self._undo()
+        if(option == "Clear All"):  self._reset()
+        self.btn['datSpec'].set("STS.dat")
+    
+    def gridSpec(self,option):
+        if(option == "Add Single"):   self.addFromGrid()
+        if(option == "Add Averaged"): self.avgFromGrid()
+        if(option == "Undo Single"):  self.mainPanel.gridPanel._undo()
+        if(option == "Undo Averaged"):self.mainPanel.gridPanel.undoAverage()
+        if(option == "Clear All"):    self.mainPanel.gridPanel._reset()
+        self.btn['GridSpec'].set("STS.grid")
+    
+    def _reference(self,option):
+        if(option == "Load New"): self.loadReference()
+        if(option == "Hide"):
+            self.showReference()
+            newValues = ["Reference","Load New","Show"]
+            self.btn["Reference"].configure(values=newValues)
+        if(option == "Show"):
+            self.showReference()
+            newValues = ["Reference","Load New","Hide"]
+            self.btn["Reference"].configure(values=newValues)
+        self.btn['Reference'].set("Reference")
+            
+    def plotProps(self,option):
+        if(option == "Toggle Offset"): self._offset()
+        if(option == "Linear"):
+            self._scale()
+            newValues = ["Plot Props","Toggle Offset","Log"]
+            self.btn['PlotProp'].configure(values=newValues)
+        if(option == "Log"):
+            self._scale()
+            newValues = ["Plot Props","Toggle Offset","Linear"]
+            self.btn['PlotProp'].configure(values=newValues)
+        self.btn['PlotProp'].set("Plot Props")
         
     ###########################################################################
     # Save (WIP)

@@ -35,12 +35,32 @@ class FitPanel(Panel):
             "Next":     ctk.CTkButton(self.master, text="Next Curve", command=self.nextCurve),
             "Add":      ctk.CTkComboBox(self.master,values=["Add Fit"], command=self.addFitCurve),
             "Edit":     ctk.CTkComboBox(self.master,values=["Edit Fit"],command=self.editForm),
+            "Inset":    ctk.CTkButton(self.master, text="Inset",      command=super().addInset),
             "Reset":    ctk.CTkButton(self.master, text="Reset",      command=self.reset),
             "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
         
         addValues=["Add Fit","Reference","Gaussian","Fermi-Dirac","Point-Spectrum"]
         self.btn['Add'].configure(values=addValues,variable="Add Fit")
+    
+    def buttonHelp(self):
+        helpStr = "Cycle through curves on the STS Panel"
+        self.btn['Next'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Add a new component to the fit"
+        self.btn['Add'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Edit one of the existing fit components"
+        self.btn['Edit'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Add the above plot as an inset on the main figure. Double click a location in the main figure to repoisition the inset and use the scroll wheel to change its size"
+        self.btn['Inset'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Start from scratch"
+        self.btn['Reset'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Close this panel"
+        self.btn['Close'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
     def special(self):
         # Reference Form
@@ -96,9 +116,6 @@ class FitPanel(Panel):
     def update(self):
         if(not self.mainPanel.init): return
         if(not self.active): return
-        
-        self.updateHelpLabel("Use the 'Add' button to add fitting components\n"
-                        +    "Then use the 'Fit Params' button to adjust the parameters for each component")
         
         self.ax.cla()                                                           # Clear the axis
         self.plotSTS()                                                          # Plots the sts curve selected from the sts panel
@@ -292,6 +309,7 @@ class FitPanel(Panel):
         self.update()
         
     def editForm(self,name):
+        if(name == "Edit Fit"): return
         name,index = name.split(" ")
         self.componentIdx = int(index)
         self.showForm(name=name)
