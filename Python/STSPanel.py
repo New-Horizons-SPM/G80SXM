@@ -37,9 +37,10 @@ class STSPanel(Panel):
     ###########################################################################
     def buttons(self):
         self.btn = {
-            "Multi":    ctk.CTkButton(self.master, text="Add Multi",  command=self._browseMulti),
-            "Single":   ctk.CTkButton(self.master, text="Add Single", command=self._browseSingle),
-            "Custom":   ctk.CTkButton(self.master, text="Add Custom", command=self._browseCustom),
+            # "Multi":    ctk.CTkButton(self.master, text="Add Multi",  command=self._browseMulti),
+            # "Single":   ctk.CTkButton(self.master, text="Add Single", command=self._browseSingle),
+            # "Custom":   ctk.CTkButton(self.master, text="Add Custom", command=self._browseCustom),
+            "AddSpec":  ctk.CTkComboBox(self.master, values=["Add Spectra"],command=self.addSpectra),
             "FromGrid": ctk.CTkButton(self.master, text="From Grid",  command=self._addFromGrid),
             "AvgGrid":  ctk.CTkButton(self.master, text="Avg Grid",   command=self.avgFromGrid),
             "Offset":   ctk.CTkButton(self.master, text="Offset",     command=self._offset),
@@ -48,14 +49,19 @@ class STSPanel(Panel):
             "ShowRef":  ctk.CTkButton(self.master, text="Show Ref",   command=self.showReference),
             # "RemRef":   ctk.CTkButton(self.master, text="Remove Ref", command=self.removeReference),  # See how it goes getting rid of this, now that fitPanel exists
             "Channel":  ctk.CTkButton(self.master, text="Current (A)",command=self._cycleChannel),
-            "Undo":     ctk.CTkButton(self.master, text="Undo Last",  command=self._undo),
-            "Reset":    ctk.CTkButton(self.master, text="Reset",      command=self._reset),
+            # "Undo":     ctk.CTkButton(self.master, text="Undo Last",  command=self._undo),
+            # "Reset":    ctk.CTkButton(self.master, text="Reset",      command=self._reset),
             "Inset":    ctk.CTkButton(self.master, text="Inset",      command=super().addInset),
             "Imprint":  ctk.CTkButton(self.master, text="Imprint",    command=super()._imprint),
             "Fitting":  ctk.CTkButton(self.master, text="Fit",        command=self.mainPanel.fitPanel.create),
             "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
-           
+        
+        addSpectraValues = ["Add Spectra","Single .sxm","Manual Single .sxm","Folder .sxm","Undo","Reset"]
+        self.btn['DrawAtoms'].configure(values=drawAtomValues,fg_color=['#3B8ED0', '#1F6AA5'])
+    def addSpectra(self,option):
+        if(option == "Single .sxm"):
+        
     def special(self):                                                          # Special canvas UI
         self.slider = ctk.CTkSlider(self.master, orient=tk.HORIZONTAL, from_=0, to=9, width=420, command=self.smoothing) # Slider to select which bias/sweep signal slice to look show
         self.slider.grid(row=10,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
