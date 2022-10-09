@@ -10,6 +10,7 @@ import customtkinter as ctk
 import numpy as np
 from scipy.signal import convolve2d
 from scipy import ndimage
+import nanonispyfit as napfit
 
 class FilterPanel(Panel):
     activeFilters = {"rollV" : 0,
@@ -57,8 +58,8 @@ class FilterPanel(Panel):
         
         extent = self.mainPanel.extent
         cmap = self.cmaps[self.mainPanel.cmap][1]
-        vmin = self.mainPanel.vmin; vmax = self.mainPanel.vmax
-        self.ax.imshow(filteredIm,extent=extent,cmap=cmap(),vmin=vmin,vmax=vmax)
+        self.vmin, self.vmax = napfit.filter_sigma(filteredIm)                  # cmap saturation
+        self.ax.imshow(filteredIm,extent=extent,cmap=cmap(),vmin=self.vmin,vmax=self.vmax)
     
     def _addPlotCaption(self):
         plotCaption  = 'Filter List:'                                           # List of filters in the order they are applied (text box will display these)
@@ -96,6 +97,8 @@ class FilterPanel(Panel):
     def setFilter(self):
         self.activeFilters     = self.filters.copy()
         self.activeFilterOrder = self.filterOrder.copy()
+        self.mainPanel.vmin = self.vmin
+        self.mainPanel.vmax = self.vmax
         self.mainPanel.update()
     ###########################################################################
     # Filters
