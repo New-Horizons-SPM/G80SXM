@@ -26,3 +26,10 @@ There are a number of panels in the gui, each with a specific function. See belo
   * Gaussian
   * Fermi-Dirac
   * More
+
+![TOPO_with_FFT_and_FFTInset](./Documentation/TOPO_with_FFT_and_FFTInset.png)
+* View FFT and label peaks
+
+![TOPO_with_FitSteps](./Documentation/TOPO_with_FitSteps.png)
+* Plot 1D cuts through data
+* Easily fit data to accurately determine step edge
