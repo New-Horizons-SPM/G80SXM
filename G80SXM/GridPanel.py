@@ -51,15 +51,43 @@ class GridPanel(Panel):
             "cmap":     ctk.CTkButton(self.master, text="viridis",    command=super()._cmap),           # Button to cycle through colour maps
             "Inset":    ctk.CTkButton(self.master, text="Inset",      command=super().addInset),        # Inset this into the main panel
             "Imprint":  ctk.CTkButton(self.master, text="Imprint",    command=super()._imprint),        # Imprint the spectra on STS panel
-            "UndoPt":   ctk.CTkButton(self.master, text="Undo Point", command=self._undo),              # Undo the last point spectra on STS panel
-            "UndoAvg":  ctk.CTkButton(self.master, text="Undo Avg",   command=self.undoAverage),        # Undo the last point spectra on STS panel
-            "Reset":    ctk.CTkButton(self.master, text="Reset",      command=self._reset),             # Remove all point spectra from STS panel
-            "PullMol":  ctk.CTkButton(self.master, text="Pull Mol",   command=self.pullMolecules),      # Pull in molecules plotted on the main panel
-            "ClearMol": ctk.CTkButton(self.master, text="Clear Mol",  command=self.clearMolecules),     # Clear all molecules from grid overlay
+            "PullMol":  ctk.CTkButton(self.master, text="Copy Atoms", command=self.pullMolecules),      # Pull in molecules plotted on the main panel
+            "ClearMol": ctk.CTkButton(self.master, text="Clear Atoms",command=self.clearMolecules),     # Clear all molecules from grid overlay
             "Caption":  ctk.CTkButton(self.master, text="Caption",    command=self._toggleCaption),     # Toggle the plot caption
             "ScaleBar": ctk.CTkButton(self.master, text="Scale Bar",  command=self._toggleScalebar),    # Toggle the plot scalebar
             "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)             # Close the panel
             }
+            
+    def buttonHelp(self):
+        helpStr = "Load in a .3ds file containing grid data.\nFor cloud measurements, use the STS Panel"
+        self.btn['load3ds'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Change the colour map"
+        self.btn['cmap'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Copy atoms drawn on the main figure. Only those within the grid region will be displayed"
+        self.btn['PullMol'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Clear atoms drawn on this figure"
+        self.btn['ClearMol'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Show/Hide the plot caption"
+        self.btn['Caption'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Add the above plot as an inset on the main figure. Double click a location in the main figure to repoisition the inset and use the scroll wheel to change its size"
+        self.btn['Inset'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Imprint the overlay drawn by this panel on the main figure so it persits after closing this panel"
+        self.btn['Imprint'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Close this panel"
+        self.btn['Close'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Show/Hide the scalebar"
+        self.btn['ScaleBar'].bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
+        
+        helpStr = "Adjust the slider to scan bias"
+        self.slider.bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
     
     def special(self):                                                          # Special canvas UI
         self.slider = ctk.CTkSlider(self.master, orient=tk.HORIZONTAL, from_=0, to=1, width=420, command=self.changeBias) # Slider to select which bias/sweep signal slice to look show
@@ -314,7 +342,8 @@ class GridPanel(Panel):
     
     def finishAveraging(self,event):
         self.extractUnbind()                                                    # Unbind, we've cancelled placement of this marker
-        self.averagedPointsPos.append(self.currentAveragedPointsPos)            # This collection of points become averaged into a single spectra
+        if(len(self.currentAveragedPointsPos)):
+            self.averagedPointsPos.append(self.currentAveragedPointsPos)        # This collection of points become averaged into a single spectra
         self.currentExtractPos = []                                             # Clear buffer
         self.currentAveragedPointsPos = []                                      # Clear buffer
         self.mainPanel.update(upd=[3,5])                                        # Update sts panel and this panel
