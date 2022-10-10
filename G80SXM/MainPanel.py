@@ -12,7 +12,6 @@ from LineProfilePanel import LineProfilePanel
 from FFTPanel import FFTPanel
 from STSPanel import STSPanel
 from FilterPanel import FilterPanel
-# from AIMLPanel import AIMLPanel
 from GridPanel import GridPanel
 from FitPanel import FitPanel
 import numpy as np
@@ -51,8 +50,8 @@ class MainPanel(Panel):
     tiltPlane = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);
     
     # Plane Fit
-    planeFitArea = []; curPlaneFitArea = [];
-    planeFitCursor = -1
+    curPlaneFitArea = [];
+    planeFitCursor = -1; planeFitBox = []
     
     # Draw Atoms
     atoms = []; curMol = []                                                     # curMol is the filename of the molecule being placed
@@ -307,8 +306,8 @@ class MainPanel(Panel):
             self.vmax = np.max(self.finalim)
             
             self.tiltPlane = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]])            # Init tilt correct
-        
-        self.planeFitActive = False                                             # Init plane fit (need to move this into if(not load) statement after putting this in the g80 file)
+            self.planeFitBox = []
+            
         
         self.extent = (0, self.lxy[0], 0, self.lxy[1])                          # Real-space image boundaries
         
@@ -316,7 +315,6 @@ class MainPanel(Panel):
         
         ## Re-initialise panels that need it
         self.linePanel.init()
-        # self.aimlPanel.init()
         self.gridPanel.init()
         
         self.updateHelpLabel("")
@@ -910,7 +908,6 @@ class MainPanel(Panel):
         self.planeFitCursor += 1
         if(self.planeFitCursor == 2):
             self.planeFitUnbind()
-            self.planeFitArea = self.curPlaneFitArea
             self.tiltPlane = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);
             
             topx = np.min([self.curPlaneFitArea[0][0],self.curPlaneFitArea[1][0]])
@@ -928,15 +925,15 @@ class MainPanel(Panel):
             self.curTilt   = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);
             self.tiltPlane = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);
             
-            self.planeFitActive = True
+            self.update()
+            self.vmin, self.vmax = napfit.filter_sigma(self.finalim)            # cmap saturation. 3 sigma by default
         self.update()
     
     def _planeFit(self,im):
-        if(not self.planeFitActive): return im
+        if(not len(self.planeFitBox)): return im
         topCorner = self.planeFitBox[0]
         botCorner = self.planeFitBox[1]
         im = napfit.plane_fit_2d(im,region=[topCorner,botCorner])
-        # self.vmin, self.vmax = napfit.filter_sigma(self.im)                     # cmap saturation. 3 sigma by default
         return im
     
     def cancelPlaneFit(self,event):
@@ -984,45 +981,43 @@ class MainPanel(Panel):
         self.fig.savefig(path,format='png',dpi=dpi)
                 
     def _save(self):
-        return
-        saveString  = self._buildSaveString()
-        saveString += self.linePanel.buildSaveString()
-        saveString += self.fftPanel.buildSaveString()
-        
         default = self.sxm.header['scan_file'].rsplit('\\',1)[1].rsplit('.')[0] + '.g80'
         path = filedialog.asksaveasfilename(title="Save as",initialfile=default)
         if(not path.endswith('.g80')): path += '.g80'
-        with open(path,'w') as f:
-            f.write(saveString)
         
-    def _buildSaveString(self):
-        saveString = "#MainPanel\n"                                             # Header
+        saveDict = {}
+        saveDict['MainPanel']           = self.buildSaveDict()
+        saveDict['LineProfilePanel']    = self.linePanel.buildSaveDict()
+        saveDict['FFTPanel']            = self.fftPanel.buildSaveDict()
+        saveDict['STSPanel']            = self.stsPanel.buildSaveDict()
         
-        saveString += self.filename + "\n"
+        # saveDict['GridPanel']           = self.gridPanel.buildSaveDict()
         
-        tilt = []
-        for tiltPlane in self.tiltPlane:
-            tilt.append(','.join("{:.17f}".format(t) for t in tiltPlane))
-        saveString += '|'.join(i for i in tilt) + "\n"                          # Line 3: 3 points defining tilt plane
+        pickle.dump(saveDict,open(path,'wb'))
         
-        saveString += ("{:.20f}".format(self.vmin) + "," +                      # Line 4: min/max for colour map
-                       "{:.20f}".format(self.vmax) + "\n")
+    def buildSaveDict(self):
+        saveDict = {}
+        saveDict['filename']    = self.filename
+        saveDict['vmin']        = self.vmin
+        saveDict['vmax']        = self.vmax
+        saveDict['cmap']        = self.cmap
+        saveDict['plotChannel'] = self.plotChannel
+        saveDict['scaleBar']    = self.scaleBar
+        saveDict['plotCaption'] = self.plotCaption
+        saveDict['insetCmap']   = self.insetCmap
+        saveDict['insetPos']    = self.insetPos
         
-        saveString += str(self.cmap) + "\n"                                     # Line 5: Colour map index
+        saveDict['tiltPlane'] = self.tiltPlane
+        saveDict['planeFitBox'] = self.planeFitBox
         
-        molPos   = []
-        for i in range(len(self.molFiles)):
-            molPos.append(','.join(str(pos) for pos in self.molPos[i]))
-        saveString += ('|'.join(i for i in self.molFiles) + "\n")               # Line 6: List of molecules to place (.xyz filename)
-        saveString += ('|'.join(i for i in molPos) + "\n")                      # Line 7: Position of each molecule
-        saveString += ('|'.join(i for i in [str(int)                            # Line 8: Rotation of each molecule in z
-                                     for int in self.molRot]) + "\n")
-        saveString += ('|'.join(i for i in [str(int)                            # Line 9: Rotation of each molecule in x
-                                     for int in self.molRotX]) + "\n")
-        saveString += ('|'.join(i for i in [str(int)                            # Line 10: Rotation of each molecule in y
-                                     for int in self.molRotY]) + "\n")
-                
-        return saveString
+        saveDict['molFiles'] = self.molFiles
+        saveDict['molPos']   = self.molPos
+        saveDict['molRot']   = self.molRot
+        saveDict['molRotX']  = self.molRotX
+        saveDict['molRotY']  = self.molRotY
+        saveDict['atoms']    = self.atoms
+        
+        return saveDict
     ###########################################################################
     # Load
     ###########################################################################
@@ -1032,54 +1027,22 @@ class MainPanel(Panel):
         if(not g80File.endswith(".g80")):                                       # Needs to be .g80 file
             print("Expecting .g80 file")
             return
+        loadDict = pickle.load(open(g80File,'rb'))
+        self.loadFromDict(loadDict['MainPanel'])
+        self.loadSXM(filename=self.filename,load=True)                          # Reload
         
-        self._loadFromFile(g80File)
-        self.linePanel.loadFromFile(g80File)
-        self.fftPanel.loadFromFile(g80File)
-    
-    def _loadFromFile(self,g80File):
-        headerFound = False
-        with open(g80File, 'r') as f:
-            line = "begin"
-            while(not headerFound and line):
-                line = f.readline()[:-1]
-                if(line == "#MainPanel"): headerFound = True
-            if(not headerFound): print("Could not find header"); return
-            
-            filename = f.readline()[:-1]
-            
-            self.tiltPlane = []
-            tilt = f.readline()[:-1].split('|')                                 # Line 3: 3 points defining tilt plane
-            for i in tilt:
-                self.tiltPlane.append([float(t) for t in i.split(',')])
-            self.tiltPlane = np.array(self.tiltPlane)
-            self.curTilt   = np.copy(self.tiltPlane)
-            
-            cmapSat = f.readline()[:-1].split(',')                              # Line 4: Colour map saturation (num STDs around median)
-            self.vmin = float(cmapSat[0])
-            self.vmax = float(cmapSat[1])
-            
-            cmap = f.readline()[:-1]                                            # Line 5: colour map index
-            self.cmap = int(cmap) - 1                                           # Subtract 1 from cmap
-            super()._cmap()                                                     # Then cycle back to it using this function which updates cmap button text
-            
-            self.molFiles = []; self.molPos = []; self.molRot = []
-            molFiles = f.readline()[:-1]                                        # Line 6: List of molecules to place (.xyz filename)
-            molPos   = f.readline()[:-1].split('|')                             # Line 7: Position of each molecule
-            molRot   = f.readline()[:-1].split('|')                             # Line 8: Rotation of each molecule in z
-            molRotX  = f.readline()[:-1].split('|')                             # Line 9: Rotation of each molecule in x
-            molRotY  = f.readline()[:-1].split('|')                             # Line 10: Rotation of each molecule in y
-            if(molFiles):
-                self.molFiles = molFiles.split('|')
-                for i in molPos:
-                    self.molPos.append([float(pos) for pos in i.split(',')])
-                self.molRot  = [float(rot) for rot in molRot]
-                self.molRotX = [float(rot) for rot in molRotX]
-                self.molRotY = [float(rot) for rot in molRotY]
-            
-            self._loadMolecules()                                               # Stores the molecules in an array of atoms. Otherwise need to repeatedly load in xyz files every canvas update
-            
-            self.loadSXM(filename=filename,load=True)                           # Reload
+        self.linePanel.loadFromDict(loadDict['LineProfilePanel'])
+        self.fftPanel.loadFromDict(loadDict['FFTPanel'])
+        self.stsPanel.loadFromDict(loadDict['STSPanel'])
+        
+        # if("GridPanel" in loadDict): self.stsPanel.loadFromDict(loadDict['GridPanel'])
+        
+        self.update()
+        
+    def loadFromDict(self,loadDict):
+        for key,value in loadDict.items():
+            setattr(self,key,value)
+        
     ###########################################################################
     # Misc
     ###########################################################################

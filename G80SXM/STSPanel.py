@@ -442,20 +442,33 @@ class STSPanel(Panel):
         self.btn['PlotProp'].set("Plot Props")
         
     ###########################################################################
-    # Save (WIP)
+    # Save
     ###########################################################################
-    def buildSaveString(self):
-        saveString = "#STSPanel\n"                                              # Line 1: Header
+    def buildSaveDict(self):
+        saveDict = {}
+        saveDict['stsOffset'] = self.stsOffset
+        saveDict['logScale']  = self.logScale
+        saveDict['datFile']   = self.datFile
+        saveDict['stsPos']    = self.stsPos
         
-        saveString += str(self.stsOffset) + "\n"                                # Line 2: offset curves
+        saveDict['datFileCustom']   = self.datFileCustom
+        saveDict['customSTSPos']    = self.customSTSPos
+        saveDict['dat_xchannel']    = self.dat_xchannel
+        saveDict['dat_ychannel']    = self.dat_ychannel
         
-        saveString += str(self.logScale)  + "\n"                                # Line 3: log scale = 1. linear scale = 0
+        saveDict['reference']       = self.reference
+        saveDict['referencePath']   = self.referencePath
+        saveDict['showRef']         = self.showRef
+        saveDict['sg_pts']          = self.sg_pts
+        saveDict['sg_poly']         = self.sg_poly
+        saveDict['removeRef']       = self.removeRef
         
-        stsPos   = []
-        for i in range(len(self.datFile)):
-            stsPos.append(','.join(str(pos) for pos in self.stsPos[i]))
-        saveString += ('|'.join(i for i in self.datFile) + "\n")                # Line 4: List of sts .dat files
-        saveString += ('|'.join(i for i in stsPos) + "\n")                      # Line 5: Their position on the sxm
+        saveDict['imprint']       = self.imprint
+        
+        return saveDict
     ###########################################################################
-    # Load (WIP)
+    # Load
     ###########################################################################
+    def loadFromDict(self,loadDict):
+        for key,value in loadDict.items():
+            setattr(self,key,value)

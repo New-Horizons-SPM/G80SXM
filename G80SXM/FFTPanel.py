@@ -150,40 +150,18 @@ class FFTPanel(Panel):
     ###########################################################################
     # Save
     ###########################################################################
-    def buildSaveString(self):
-        saveString = "#FFTPanel\n"                                              # Line 1: Header
+    def buildSaveDict(self):
+        saveDict = {}
         
-        saveString += str(self.cmap) + "\n"                                     # Line 2: Colour map
+        saveDict['cmap'] = self.cmap
+        saveDict['fftZoom'] = self.fftZoom
+        saveDict['fftLabel'] = self.fftLabel
         
-        saveString += str(self.fftZoom) + "\n"                                  # Line 3: Zoom
-        
-        saveString += str(len(self.fftLabel)) + "\n"                            # Line 4: Number of labels to follow
-        for label in self.fftLabel:
-            saveString += ','.join("{:.5f}".format(pos)                         # Line 5...: FFT Labels
-                             for pos in label) + "\n"
-        
-        return saveString
+        return saveDict
     ###########################################################################
     # Load
     ###########################################################################
-    def loadFromFile(self,g80File):
-        headerFound = False
-        with open(g80File, 'r') as f:
-            line = "begin"
-            while(not headerFound and line):
-                line = f.readline()[:]
-                if(line == "#FFTPanel\n"): headerFound = True
-            if(not headerFound): print("Missing #FFTPanel"); return
-            
-            cmap = f.readline()[:-1]                                            # Line 2: colour map index
-            self.cmap = int(cmap) - 1                                           # Subtract 1 from cmap
-            super()._cmap()                                                     # Then cycle back to it using this function which updates cmap button text
-            
-            self.fftZoom = float(f.readline()[:-1])                             # Line 3: Plot Mode
-            
-            numLabels = int(f.readline()[:-1])                                  # Line 4: Number of labels to follow
-            
-            self.fftLabel = []                                                  # Line 5...: label
-            for l in range(numLabels):
-                label = np.array(f.readline()[:-1].split(','))
-                self.fftLabel.append(label.astype(float))
+    def loadFromDict(self,loadDict):
+        for key,value in loadDict.items():
+            setattr(self,key,value)
+        

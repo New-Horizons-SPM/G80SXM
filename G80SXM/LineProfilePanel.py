@@ -351,46 +351,20 @@ class LineProfilePanel(Panel):
     ###########################################################################
     # Save
     ###########################################################################
-    def buildSaveString(self):
-        saveString = "#LineProfilePanel\n"                                      # Line 1: Header
+    def buildSaveDict(self):
+        saveDict = {}
         
-        saveString += str(self.plotMode)  + "\n"                                # Line 2: Plot Mode
-        saveString += str(len(self.cPos)) + "\n"                                # Line 3: Number of cursors to follow (might have more than two cursors in future)
-        for cPos in self.cPos:
-            for cursor in cPos:
-                saveString += ','.join("{:.5f}".format(pos)                         # Line 4...: cursor position
-                                 for pos in cursor) + "\n"
+        saveDict['plotMode'] = self.plotMode
+        saveDict['cPos']     = self.cPos
+        saveDict['segInfo']  = self.segInfo
+        saveDict['fitLocations']  = self.fitLocations
+        saveDict['imprint']  = self.imprint
         
-        return saveString
+        return saveDict
+    
     ###########################################################################
     # Load
     ###########################################################################
-    def loadFromFile(self,g80File):
-        headerFound = False
-        with open(g80File, 'r') as f:
-            line = "begin"
-            while(not headerFound and line):
-                line = f.readline()[:]
-                if(line == "#LineProfilePanel\n"): headerFound = True
-            if(not headerFound): print("Missing #LineProfilePanel"); return
-            
-            self.plotMode = int(f.readline()[:-1])                              # Line 2: Plot Mode
-            
-            numCursor = int(f.readline()[:-1])                                  # Line 3: Number of cursors to follow
-            
-            self.cPos = []                                                      # Line 4...: cursor position
-            for cursor in range(numCursor):
-                c1 = np.array(f.readline()[:-1].split(',')).astype(float)
-                c2 = np.array(f.readline()[:-1].split(',')).astype(float)
-                self.cPos.append(np.array([c1,c2]))
-            if(len(self.cPos) == 0):
-                self.cPos = [np.array([[0.5,0.5],[0.75,0.75]])]                 # Chuck the default in there if 0 cursors entered
-            
-            # Temporary solution until these params are saved
-            numCursor = len(self.cPos)
-            self.segInfo = []
-            for i in range(numCursor):
-                self.segInfo.append([-1,-1,1,i])
-            self.fitLocations = [[]]*numCursor
-            
-        self.mainPanel.update()
+    def loadFromDict(self,loadDict):
+        for key,value in loadDict.items():
+            setattr(self,key,value)
