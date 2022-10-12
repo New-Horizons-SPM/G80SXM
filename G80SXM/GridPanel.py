@@ -48,6 +48,7 @@ class GridPanel(Panel):
     def buttons(self):
         self.btn = {
             "load3ds":  ctk.CTkButton(self.master, text="Load 3ds",   command=self.load3ds),            # Load a 3ds file
+            "Channel":  ctk.CTkButton(self.master, text="Current (A)",command=self.cycleChannel),
             "cmap":     ctk.CTkButton(self.master, text="viridis",    command=super()._cmap),           # Button to cycle through colour maps
             "Inset":    ctk.CTkButton(self.master, text="Inset",      command=super().addInset),        # Inset this into the main panel
             "Imprint":  ctk.CTkButton(self.master, text="Imprint",    command=super()._imprint),        # Imprint the spectra on STS panel
@@ -370,6 +371,33 @@ class GridPanel(Panel):
     ###########################################################################
     # Misc
     ###########################################################################
+    def cycleChannel(self):
+        if(not self.gridData): return
+        
+        channels = list(self.gridData.signals.keys())
+        
+        if(not self.ychannel in channels):
+            self.ychannel = channels[0]
+            return
+        
+        idx = channels.index(self.ychannel) + 1
+        if(idx == len(channels)): idx = 0
+        self.ychannel = channels[idx]
+        
+        shape = list(self.gridData.signals[self.ychannel].shape)
+        
+        if(idx > 0):
+            if(not len(shape) == 3):
+                self.cycleChannel()
+            elif(not shape[2] == len(self.data[0])):
+                print("shape2:",shape[2])
+                self.cycleChannel()
+        
+        self.smooth()
+        self.btn['Channel'].configure(text=self.ychannel)
+        # self.data[1] = copy.deepcopy(self.gridData.signals[self.ychannel])
+        self.update()
+        
     def smooth(self):
         self.data    = []
         if(not self.gridData): return

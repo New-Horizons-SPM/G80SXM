@@ -216,8 +216,10 @@ class STSPanel(Panel):
         
         dV = V[1] - V[0]
         
-        didv = savgol(I,self.sg_pts,self.sg_poly,deriv=1,delta=dV)
-        if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
+        didv = 0*I
+        if('Current' in ychannel):
+            didv = savgol(I,self.sg_pts,self.sg_poly,deriv=1,delta=dV)
+            if(self.logScale): didv = np.log(didv); didv = didv - np.min(didv)
         
         if('Demod' in ychannel):
             didv = savgol(I,self.sg_pts,self.sg_poly,deriv=0)
@@ -391,11 +393,23 @@ class STSPanel(Panel):
         self.stsOffset = not self.stsOffset
         self.update()
         
-    def _cycleChannel(self):                                                    # Do this better but for now...
-        if(self.dat_ychannel == 'Current (A)'):
-            self.dat_ychannel = 'LI Demod 1 X (A)'
-        else:
-            self.dat_ychannel = 'Current (A)'
+    def _cycleChannel(self):
+        if(not self.datFile): return
+        
+        channels = list(self.datFile.signals.keys())
+        
+        if(not self.dat_ychannel in channels):
+            self.dat_ychannel = channels[0]
+            return
+        
+        idx = channels.index(self.dat_ychannel) + 1
+        if(idx == len(channels)): idx = 0
+        self.dat_ychannel = idx
+        
+        # if(self.dat_ychannel == 'Current (A)'):
+        #     self.dat_ychannel = 'LI Demod 1 X (A)'
+        # else:
+        #     self.dat_ychannel = 'Current (A)'
         
         self.btn['Channel'].configure(text=self.dat_ychannel)
         
