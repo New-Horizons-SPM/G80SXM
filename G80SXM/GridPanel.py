@@ -395,7 +395,6 @@ class GridPanel(Panel):
         
         self.smooth()
         self.btn['Channel'].configure(text=self.ychannel)
-        # self.data[1] = copy.deepcopy(self.gridData.signals[self.ychannel])
         self.update()
         
     def smooth(self):

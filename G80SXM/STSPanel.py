@@ -395,8 +395,8 @@ class STSPanel(Panel):
         
     def _cycleChannel(self):
         if(not self.datFile): return
-        
-        channels = list(self.datFile.signals.keys())
+        df = nap.read.Spec(self.datFile[0])
+        channels = list(df.signals.keys())
         
         if(not self.dat_ychannel in channels):
             self.dat_ychannel = channels[0]
@@ -404,12 +404,7 @@ class STSPanel(Panel):
         
         idx = channels.index(self.dat_ychannel) + 1
         if(idx == len(channels)): idx = 0
-        self.dat_ychannel = idx
-        
-        # if(self.dat_ychannel == 'Current (A)'):
-        #     self.dat_ychannel = 'LI Demod 1 X (A)'
-        # else:
-        #     self.dat_ychannel = 'Current (A)'
+        self.dat_ychannel = channels[idx]
         
         self.btn['Channel'].configure(text=self.dat_ychannel)
         
