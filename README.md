@@ -25,7 +25,8 @@ There are a number of panels in the gui, each with a specific function. See belo
 * Ability to average curves from several pixels within a grid. In this example, each spectrum plotted is an average of three spectra from the middle panel as denoted by the blue, orange and green crosses
 
 ![TOPO_with_FitSteps](./Documentation/TOPO_with_FitSteps.png)
-* Plot 1D cuts through data
+* Plot multiple 1D cuts through data
+* Label and colour line cuts
 * Fit profiles to accurately determine step edge heights
 * Easily add, position, and style inset figures
 
