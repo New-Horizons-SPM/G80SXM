@@ -8,7 +8,7 @@ clone the repository and run 'pip install .' from the root directory
 To run: python gui.py
 
 # Usage
-There are a number of panels in the gui, each with a specific function. See below figures for some examples. Hovering over buttons in the GUI will also provide help
+There are a number of panels in the gui, each with a specific function. See below figures for some examples. Hovering over buttons in the GUI will also provide help. Sessions can be saved and loaded via '.g80' files so you can pick up where you left off.
 
 ![nc-AFM_with_STS](./Documentation/nc-AFM_with_STS_and_molecules.png)
 * Easily overlay atoms with correct scaling from custom .xyz files
