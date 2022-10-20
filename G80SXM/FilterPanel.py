@@ -34,6 +34,8 @@ class FilterPanel(Panel):
             "RollH-": ctk.CTkButton(self.master, text="Roll Horz -", command=lambda: self.updateFilter("rollH",-1)),
             "HPF+":   ctk.CTkButton(self.master, text="High Pass +", command=lambda: self.updateFilter("HP",1)),
             "HPF-":   ctk.CTkButton(self.master, text="High Pass -", command=lambda: self.updateFilter("HP",-1)),
+            "LPF+":   ctk.CTkButton(self.master, text="Low Pass +",  command=lambda: self.updateFilter("LP",1)),
+            "LPF-":   ctk.CTkButton(self.master, text="Low Pass -",  command=lambda: self.updateFilter("LP",-1)),
             "SetFlt": ctk.CTkButton(self.master, text="Set Filter",  command=self.setFilter),
             "Close":  ctk.CTkButton(self.master, text="Close",       command=self.destroy)
             }
@@ -77,7 +79,8 @@ class FilterPanel(Panel):
     def buildFilters(self):
         self.filters = {"rollV" : [0, lambda im: self.rollVert(im)],
                         "rollH" : [0, lambda im: self.rollHorz(im)],
-                        "HP"    : [0, lambda im: self.highPass(im)]}
+                        "HP"    : [0, lambda im: self.highPass(im)],
+                        "LP"    : [0, lambda im: self.lowPass(im)]}
         self.activeFilters = self.filters.copy()
         
     def updateFilter(self,filtType,inc):
@@ -129,9 +132,13 @@ class FilterPanel(Panel):
         return convolve2d(im, np.ones((1,2*p)) / 2 / p, mode='same')
     
     def highPass(self,im):                                                      # Gaussian hp filter taken from https://stackoverflow.com/questions/6094957/high-pass-filter-for-image-processing-in-python-by-using-scipy-numpy
-        lowpass = ndimage.gaussian_filter(im, 1)
+        lowpass = ndimage.gaussian_filter(im, 20)
         gauss_highpass = im - lowpass
         return gauss_highpass
+    
+    def lowPass(self,im):
+        lowpass = ndimage.gaussian_filter(im, 0.5)
+        return lowpass
     ###########################################################################
     # Save (WIP)
     ###########################################################################

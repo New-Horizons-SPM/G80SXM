@@ -417,7 +417,7 @@ class MainPanel(Panel):
         
         vmin = med - sxmStdMin*std                                              # sxmStdMin and max are set by mouse scroll wheel on sxm canvas.
         
-        if(vmin < np.min(self.finalim)): vmin = np.min(self.finalim)            # Cap vmin
+        # if(vmin < np.min(self.finalim)): vmin = np.min(self.finalim)            # Cap vmin
         
         if(vmin > self.vmax): vmin = self.vmax - abs(delta/2400)
         
@@ -431,7 +431,7 @@ class MainPanel(Panel):
         
         vmax = med + sxmStdMax*std
         
-        if(vmax > 2*np.max(self.finalim)): vmax = 2*np.max(self.finalim)        # Cap vmax
+        # if(vmax > 2*np.max(self.finalim)): vmax = 2*np.max(self.finalim)        # Cap vmax
         
         if(vmax < self.vmin): vmax = self.vmin + abs(delta/2400)
         
