@@ -120,7 +120,7 @@ class MainPanel(Panel):
         openPanelValues = ["Open Panel","Profiles","FFT","STS","Grid","Filter"]
         self.btn['OpenPanel'].configure(values=openPanelValues,fg_color=['#3B8ED0', '#1F6AA5'])
         
-        overlayValues = ["Overlay","Caption","Inset Color","Remove Inset"]
+        overlayValues = ["Overlay","Caption","Scale Bar","Inset Color","Remove Inset"]
         self.btn['Overlay'].configure(values=overlayValues,fg_color=['#3B8ED0', '#1F6AA5'])
     
     def buttonHelp(self):
@@ -1049,6 +1049,10 @@ class MainPanel(Panel):
     def toggleCaption(self):
         self.plotCaption = not self.plotCaption
         self.update(upd=[0])
+    
+    def toggleScaleBar(self):
+        self.scaleBar = not self.scaleBar
+        self.update(upd=[0])
         
     def _channel(self,getChannels=False):
         channels = list(self.sxm.signals.keys())
@@ -1083,6 +1087,7 @@ class MainPanel(Panel):
             self.btn['Overlay'].set("Overlay")
             return
         if(option == "Caption"):        self.toggleCaption()
+        if(option == "Scale Bar"):      self.toggleScaleBar()
         if(option == "Inset Color"):    self._insetCmap()
         if(option == "Remove Inset"):   self.removeInset()
         self.btn['Overlay'].set("Overlay")
