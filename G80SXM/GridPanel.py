@@ -222,6 +222,10 @@ class GridPanel(Panel):
         self.updateHelpLabel("")
         self.data = []
         self.data.append(self.gridData.signals['sweep_signal'])
+        
+        channels = list(self.gridData.signals.keys())
+        if(not self.ychannel in channels): self.cycleChannel()
+        
         self.data.append(copy.deepcopy(self.gridData.signals[self.ychannel]))
         self.mainPanel.update(upd=[0,3,5])                                      # Update the main panel, sts panel, and this panel
         
@@ -295,7 +299,10 @@ class GridPanel(Panel):
             x_idx = int((pos[0]/lxy[0]) * self.gridData.header['dim_px'][0])
             y_idx = int((pos[1]/lxy[1]) * self.gridData.header['dim_px'][1])
             indexes.append(np.array([x_idx,y_idx]))
-        
+            
+            filenum = self.gridData.header['dim_px'][0]*y_idx + x_idx
+            print("filenum:",filenum)
+            
         if(len(self.currentExtractPos)):                                        # And also the mouse is hovering over, if we're currently choosing a point
             pos = self.currentExtractPos
             x_idx = int((pos[0]/lxy[0]) * self.gridData.header['dim_px'][0])
@@ -378,7 +385,7 @@ class GridPanel(Panel):
         
         if(not self.ychannel in channels):
             self.ychannel = channels[0]
-            return
+            # return
         
         idx = channels.index(self.ychannel) + 1
         if(idx == len(channels)): idx = 0

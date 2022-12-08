@@ -93,7 +93,7 @@ class STSPanel(Panel):
         self.slider.bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
         
     def special(self):                                                          # Special canvas UI
-        self.slider = ctk.CTkSlider(self.master, orient=tk.HORIZONTAL, from_=0, to=9, width=420, command=self.smoothing) # Slider to select which bias/sweep signal slice to look show
+        self.slider = ctk.CTkSlider(self.master, orientation=tk.HORIZONTAL, from_=0, to=9, width=420, command=self.smoothing) # Slider to select which bias/sweep signal slice to look show
         self.slider.grid(row=10,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
         self.slider.set(1)
 

@@ -10,8 +10,6 @@ import customtkinter as ctk
 from tkinter import filedialog
 import numpy as np
 import math
-# import matplotlib
-# matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import colors
@@ -84,7 +82,7 @@ class Panel():
         pass
     
     def _helpLabel(self):
-        self.helpLabel = ctk.CTkLabel(self.master,text="",justify=tk.LEFT, wraplengt=self.width - 5)
+        self.helpLabel = ctk.CTkLabel(self.master,text="",justify=tk.LEFT, wraplength=self.width - 5)
         for r in range(4):
             self.master.rowconfigure(index=r+12,weight=1,minsize=20)
         self.helpLabel.grid(row=12,column=self.pos,columnspan=self.length,rowspan=4,sticky='nsew')
