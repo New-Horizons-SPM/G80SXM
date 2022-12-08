@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/486210971.svg)](https://zenodo.org/badge/latestdoi/486210971)
 # G80SXM
 G80SXM is a tool written in python to quickly analyse and create figures for Nanonis SPM data (STM/STS/nc-AFM).
 I am actively developing this tool so if you have any suggestions or find any bugs, feel free to create an issue. The provided ./ExampleData used to create these figures was obtained in our lab at Monash University (see publications [here](https://onlinelibrary.wiley.com/doi/abs/10.1002/adfm.202106474) and [here](https://pubs.acs.org/doi/abs/10.1021/acsnano.9b05950)).
