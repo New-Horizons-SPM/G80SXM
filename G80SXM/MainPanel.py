@@ -5,18 +5,18 @@ Created on Fri Apr  8 15:00:50 2022
 @author: jced0001
 """
 
-from Panel import Panel
+from .Panel import Panel
 import customtkinter as ctk
 from   tkinter import filedialog
-from LineProfilePanel import LineProfilePanel
-from FFTPanel import FFTPanel
-from STSPanel import STSPanel
-from FilterPanel import FilterPanel
-from GridPanel import GridPanel
-from FitPanel import FitPanel
+from .LineProfilePanel import LineProfilePanel
+from .FFTPanel import FFTPanel
+from .STSPanel import STSPanel
+from .FilterPanel import FilterPanel
+from .GridPanel import GridPanel
+from .FitPanel import FitPanel
 import numpy as np
-import nanonispy as nap
-import nanonispyfit as napfit
+import nanonispy2 as nap
+from . import nanonispyfit as napfit
 import math
 import os
 import io
@@ -44,7 +44,7 @@ class MainPanel(Panel):
     
     # Tilt
     tiltActive= False
-    # tiltFactor= 1e-14                                                           # tiltFactor will be user input eventually.
+    # tiltFactor= 1e-14                                                         # tiltFactor will be user input eventually.
     tiltFactor= 100                                                             # tiltFactor will be user input eventually.
     curTilt   = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);                        # Tilt plane is defined by three points. curTilt keeps track of a tilt correction in progress
     tiltPlane = np.array([[1/2, 0, 0],[0,1,0],[1,1,0]]);
@@ -54,7 +54,7 @@ class MainPanel(Panel):
     planeFitCursor = -1; planeFitBox = []
     
     # Draw Atoms
-    atoms = []; curMol = []                                                     # curMol is the filename of the molecule being placed
+    atoms = []; curMol = []; curAtoms = []                                      # curMol is the filename of the molecule being placed
     courseRot = 10; fineRot = 1                                                 # course and fine rotation precision in degrees
     molFiles = []; molPos = []; molRot = []; molRotX = []; molRotY = []         # list of filenames and corresponding positions of the molecules on the canvas.
     curRot = 0; curRotX = 0; curRotY = 0;
@@ -591,7 +591,7 @@ class MainPanel(Panel):
             self.btn['DrawAtoms'].set("Draw Atoms")
             return
         
-        filename = "../xyz/" + name + ".xyz"
+        filename = os.path.join(os.path.dirname(__file__), '..', 'xyz', name + ".xyz")
         if(name == "Custom.xyz"):
             filename = self._browseFile()
             if(not filename): return

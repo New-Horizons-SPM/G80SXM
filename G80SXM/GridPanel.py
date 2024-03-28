@@ -6,11 +6,11 @@ Created on Tue Aug 30 15:16:02 2022
 """
 
 import numpy as np
-import nanonispy as nap
+import nanonispy2 as nap
 import ntpath
 from ase.visualize.plot import plot_atoms
 import copy
-from Panel import Panel
+from .Panel import Panel
 import tkinter as tk
 import customtkinter as ctk
 import math
@@ -91,7 +91,7 @@ class GridPanel(Panel):
         self.slider.bind('<Enter>',lambda event, s=helpStr: self.updateHelpLabel(s))
     
     def special(self):                                                          # Special canvas UI
-        self.slider = ctk.CTkSlider(self.master, orient=tk.HORIZONTAL, from_=0, to=1, width=420, command=self.changeBias) # Slider to select which bias/sweep signal slice to look show
+        self.slider = ctk.CTkSlider(self.master, orientation=tk.HORIZONTAL, from_=0, to=1, width=420, command=self.changeBias) # Slider to select which bias/sweep signal slice to look show
         self.slider.grid(row=10,column=self.pos,columnspan=4,rowspan=2)          # Make it take up the entire length of the panel
         if(self.gridData):                                                      # Figure out how many ticks the slider needs. 1 tick = 1 dV
             to = len(self.gridData.signals['sweep_signal']) - 1

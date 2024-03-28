@@ -5,7 +5,7 @@ Created on Sat Apr  2 18:09:36 2022
 @author: jced0001
 """
 
-from Panel import Panel
+from .Panel import Panel
 import customtkinter as ctk
 import numpy as np
 class FFTPanel(Panel):

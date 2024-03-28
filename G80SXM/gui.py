@@ -6,7 +6,7 @@ Created on Sat Apr  2 17:12:16 2022
 """
 
 import customtkinter as ctk
-from MainPanel import MainPanel as mp
+from .MainPanel import MainPanel as mp
 
 ctk.set_appearance_mode("Dark")                                                 # Modes: system (default), light, dark
 ctk.set_default_color_theme("blue")                                             # Themes: blue (default), dark-blue, green
@@ -24,6 +24,7 @@ class App(ctk.CTk):
         self.geometry("%dx%d" % (self.WIDTH, 800))
     def on_closing(self, event=0):
         self.mainPanel.quit()
-        
-app = App()
-app.mainloop()
+
+def main():
+    app = App()
+    app.mainloop()

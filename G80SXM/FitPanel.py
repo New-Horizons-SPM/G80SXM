@@ -5,7 +5,7 @@ Created on Thu Sep 29 11:23:21 2022
 @author: jced0001
 """
 
-from Panel import Panel
+from .Panel import Panel
 import tkinter as tk
 import customtkinter as ctk
 import numpy as np
@@ -40,7 +40,7 @@ class FitPanel(Panel):
             "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
         
-        addValues=["Add Fit","Reference","Gaussian","Fermi-Dirac","Point-Spectrum"]
+        addValues=["Add Fit","Reference","Exponential","Gaussian","Fermi-Dirac","Point-Spectrum"]
         self.btn['Add'].configure(values=addValues,variable="Add Fit")
     
     def buttonHelp(self):
@@ -68,6 +68,13 @@ class FitPanel(Panel):
         params.append(['A','Amin','Amax'])
         params.append(['c','cmin','cmax'])
         self.buildForm(name="Reference", params=params)
+        
+        # Exponential Form
+        params = []
+        params.append(['A','Amin','Amax'])
+        params.append(['c','cmin','cmax'])
+        params.append(['P','Pmin','Pmax'])
+        self.buildForm(name="Exponential", params=params)
         
         # Fermi-Dirac Form
         params = []
@@ -167,19 +174,33 @@ class FitPanel(Panel):
             for idx,fd in enumerate(fermiDirac):
                 A  = fd[0]; Amin  = fd[1]; Amax  = fd[2]
                 x0 = fd[3]; x0min = fd[4]; x0max = fd[5]
-                Tb = fd[6]; Tbmin = fd[7]; Tbmax = fd[8]
-                kT = 8.617e-5*fd[9]
-                
+                kT = 8.617e-5*fd[6]
+                Tb = fd[7]; Tbmin = fd[8]; Tbmax = fd[9]
+                print(fd)
                 pars.add('FD' + str(idx) + '_A',  value=A,  min=Amin,  max=Amax)
                 pars.add('FD' + str(idx) + '_x0', value=x0, min=x0min, max=x0max)
                 pars.add('FD' + str(idx) + '_T',  value=-kT, vary=False)
                 pars.add('FD' + str(idx) + '_Tb', value=Tb, min=Tbmin, max=Tbmax)
-                pars.add('FD' + str(idx) + '_c',  value=A,  min=0,     max=2*A)
+                pars.add('FD' + str(idx) + '_c',  value=0,  min=-1,     max=1)
                 
                 fermiEdge.append(Model(self.fermiDiracFunc,prefix='FD' + str(idx) + '_'))
                 if(not model): model = fermiEdge[-1]
                 else:          model += fermiEdge[-1]
         
+        if("Exponential" in self.fitDict):
+            exponential = self.fitDict["Exponential"]
+            for idx,e in enumerate(exponential):
+                A  = e[0]; Amin  = e[1]; Amax = e[2]
+                c  = e[3]; cmin  = e[4]; cmax = e[5]
+                P  = e[6]; Pmin  = e[7]; Pmax = e[8]
+                
+                pars.add('EXP' + str(idx) + '_A', value=A, min=Amin, max=Amax)
+                pars.add('EXP' + str(idx) + '_c', value=c, min=cmin, max=cmax)
+                pars.add('EXP' + str(idx) + '_P', value=P, min=Pmin, max=Pmax)
+                
+                if(not model): model  = Model(self.exponentialFunc,prefix='EXP' + str(idx) + '_')
+                else:          model += Model(self.exponentialFunc,prefix='EXP' + str(idx) + '_')
+                
         if("Gaussian" in self.fitDict):
             gaussian = self.fitDict["Gaussian"]
             for idx,g in enumerate(gaussian):
@@ -247,7 +268,7 @@ class FitPanel(Panel):
             e[0].insert(0,self.fitDict[name][self.componentIdx][idx])
         
         for idx,b in enumerate(self.forms[name]['buttons']):
-            if(b[0].text == "remove" and self.componentIdx == -1): continue  # Only show the 'remove' button if we're editing a selection
+            if(b[0].cget('text') == "remove" and self.componentIdx == -1): continue  # Only show the 'remove' button if we're editing a selection
             b[0].grid(row=b[1],column=b[2] + 2*idx,columnspan=2)
             b[0].configure(width=int(self.width/self.length),height=27)
             
@@ -280,7 +301,7 @@ class FitPanel(Panel):
         params = []
         for e in self.forms[name]['entries']:
             try:
-                params.append(np.float32(e[0].get()))
+                params.append(float(e[0].get()))
             except:
                 self.updateHelpLabel("Error in form: All values must be numeric.")
                 return
@@ -345,6 +366,8 @@ class FitPanel(Panel):
         PS = self.mainPanel.stsPanel.getReferenceForCurve(x,reference=ps)
         return A*PS + c
     
+    def exponentialFunc(self,x,A,c,P):
+        return A*np.exp(x*P) + c
     ###########################################################################
     # Misc Button Functions
     ###########################################################################

@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "g80sxm"
+version = "1.0.0"
+description = "Analyse and create figures for Nanonis SPM data"
+authors = ["Julian Ceddia <jdceddia@gmail.com>"]
+readme = "README.md"
+license = "MIT"
+keywords = ["stm", "python", "scanning tunnelling microscopy", "sts", "sxm", "spm", "figures", "analyse", "analysis", "plot"]
+packages = [
+            {include = "G80SXM"},
+            ]
+include = [
+            "xyz/**/*",
+            ]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "*"
+matplotlib = "*"
+customtkinter = "*"
+matplotlib_scalebar = "*"
+tk = "*"
+nanonispy2 = "*"
+scipy = "*"
+ase = "*"
+lmfit = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+g80sxm = "G80SXM.gui:main"

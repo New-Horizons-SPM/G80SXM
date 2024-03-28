@@ -5,15 +5,17 @@ Created on Sat Apr  2 18:09:36 2022
 @author: jced0001
 """
 
-from Panel import Panel
+from .Panel import Panel
 import tkinter as tk
 import customtkinter as ctk
 import numpy as np
 import os
-import nanonispy as nap
+import nanonispy2 as nap
 import math
 from scipy.signal import savgol_filter as savgol
 import matplotlib.patheffects as patheffects
+import pickle
+from   tkinter import filedialog
 
 class STSPanel(Panel):
     datFile = []; stsPos = []; stsOffset = False                                # list of .dat filenames. stspos: location of xy pos 
@@ -26,6 +28,7 @@ class STSPanel(Panel):
     removeRef = False
     showRef   = False
     sg_pts  = 3; sg_poly = 1
+    allcurves = {}
     ###########################################################################
     # Constructor
     ###########################################################################
@@ -46,6 +49,7 @@ class STSPanel(Panel):
             "Inset":    ctk.CTkButton(self.master, text="Inset",      command=super().addInset),
             "Imprint":  ctk.CTkButton(self.master, text="Imprint",    command=super()._imprint),
             "Fitting":  ctk.CTkButton(self.master, text="Fit",        command=self.mainPanel.fitPanel.create),
+            "Export":   ctk.CTkButton(self.master, text="Export",     command=self.exportSTS),
             "Close":    ctk.CTkButton(self.master, text="Close",      command=self.destroy)
             }
         
@@ -120,13 +124,17 @@ class STSPanel(Panel):
         self.mainPanel.fitPanel.update()
         
     def plotReference(self):
+        self.allcurves['reference'] = []
         if(not self.showRef): return
         V,didv = self.getDIDV(self.referencePath)
         self.reference = V,didv
         
         self.ax.plot(V,didv,linewidth=1.3,c='black',linestyle='dashed')
         
+        self.allcurves['reference'] = [V,didv]
+        
     def plotSTSFromGrid(self):
+        self.allcurves['Grid'] = []
         if(not self.mainPanel.gridPanel.active):
             if(not self.mainPanel.gridPanel.imprint):
                 return
@@ -140,6 +148,9 @@ class STSPanel(Panel):
                 s -= reference
                 
             self.ax.plot(sweep,s + cnt*offset,linewidth=1.3)
+            
+            self.allcurves['Grid'].append([sweep,s])
+            
             max_val = max(max_val,s.max())
             if cnt == 0:                                                        # Only do this on the first iteration
                offset = num_offset*0.25*max_val*self.stsOffset                  # offset for the next curve
@@ -150,6 +161,7 @@ class STSPanel(Panel):
             self.ax.axvline(x=Vb,linestyle='dashed',c='black',linewidth=0.9)
     
     def plotAveragedSTSFromGrid(self):
+        self.allcurves['AveragedGrid'] = []
         if(not self.mainPanel.gridPanel.active):
             if(not self.mainPanel.gridPanel.imprint):
                 return
@@ -164,6 +176,8 @@ class STSPanel(Panel):
             c = self.mainPanel.mplibColours[idx+1]                              #+1 because I don't wanna start from black
             self.ax.plot(sweep,s + cnt*offset,linewidth=1.3,c=c,path_effects=[patheffects.withTickedStroke(angle=60, length=0.25)])
             
+            self.allcurves['AveragedGrid'].append([sweep,s])
+            
             max_val = max(max_val,s.max())
             if cnt == 0:                                                        # Only do this on the first iteration
                offset = num_offset*0.25*max_val*self.stsOffset                  # offset for the next curve
@@ -174,6 +188,8 @@ class STSPanel(Panel):
             self.ax.axvline(x=Vb,linestyle='dashed',c='black')
     
     def _plotSTS(self):
+        self.allcurves['datFile'] = []
+        
         num_offset = 3                                                          # These will eventually be user input #todo
         max_val = 0; offset = 0; cnt = 0                                        # Loop variables
         
@@ -182,6 +198,9 @@ class STSPanel(Panel):
             
         for df in datFiles:                                                     # Loop through each .dat file, get the IV curve, take the derivative and plot a filtered version of dI/dV
             V, didv = self.getDIDV(df)
+            
+            self.allcurves['datFile'].append([V,didv])
+            
             if(self.removeRef):
                 reference = self.getReferenceForCurve(x=V)
                 didv -= reference
@@ -196,6 +215,13 @@ class STSPanel(Panel):
         self.ax.set_xlabel("Bias (V)")
         self.ax.set_ylabel(["dI/dV (arb)","log(dI/dV) (arb)"][self.logScale]);
         self.ax.set_title("Point Spectroscopy")
+        
+    def exportSTS(self):
+        default = 'sts.pk'
+        path = filedialog.asksaveasfilename(title="Save as",initialfile=default)
+        if(not path.endswith('.pk')): path += '.pk'
+        
+        pickle.dump(self.allcurves,open(path,'wb'))
         
     ###########################################################################
     # Data
