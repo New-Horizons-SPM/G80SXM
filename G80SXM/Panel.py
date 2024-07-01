@@ -135,7 +135,7 @@ class Panel():
     
     def _imprint(self):
         self.imprint = not self.imprint
-        self.btn['Imprint'].configure(bg=['SystemButtonFace','red'][self.imprint])
+        self.btn['Imprint'].configure(text_color=['white','red'][self.imprint])
         self.mainPanel.update()
         
     def toggleShiftL(self,event=[]):

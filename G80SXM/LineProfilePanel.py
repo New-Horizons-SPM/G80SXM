@@ -268,7 +268,7 @@ class LineProfilePanel(Panel):
                 
         cidx = self.segInfo[self.activeCursor[1]][3]
         c = self.mainPanel.mplibColours[cidx]                                   # Colour of the next available cursor
-        self.btn['Next Cursor'].configure(bg=c)
+        self.btn['Next Cursor'].configure(fg_color=c)
         self.mainPanel.update(upd=[0,1])
     
     def changeLineColour(self):
