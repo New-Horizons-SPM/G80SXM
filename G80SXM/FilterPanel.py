@@ -36,6 +36,7 @@ class FilterPanel(Panel):
             "HPF-":   ctk.CTkButton(self.master, text="High Pass -", command=lambda: self.updateFilter("HP",-1)),
             "LPF+":   ctk.CTkButton(self.master, text="Low Pass +",  command=lambda: self.updateFilter("LP",1)),
             "LPF-":   ctk.CTkButton(self.master, text="Low Pass -",  command=lambda: self.updateFilter("LP",-1)),
+            "LINF":   ctk.CTkButton(self.master, text="Linear Fit",  command=lambda: self.updateFilter("LINF",0)),
             "SetFlt": ctk.CTkButton(self.master, text="Set Filter",  command=self.setFilter),
             "Close":  ctk.CTkButton(self.master, text="Close",       command=self.destroy)
             }
@@ -80,11 +81,17 @@ class FilterPanel(Panel):
         self.filters = {"rollV" : [0, lambda im: self.rollVert(im)],
                         "rollH" : [0, lambda im: self.rollHorz(im)],
                         "HP"    : [0, lambda im: self.highPass(im)],
-                        "LP"    : [0, lambda im: self.lowPass(im)]}
+                        "LP"    : [0, lambda im: self.lowPass(im)],
+                        "LINF"  : [False, lambda im: self.linearFit(im)]}
         self.activeFilters = self.filters.copy()
         
     def updateFilter(self,filtType,inc):
-        self.filters[filtType][0] += inc
+        if(inc == 0):
+            # If inc is zero, we're toggling
+            self.filters[filtType][0] = not(self.filters[filtType][0])
+        else:
+            # Otherwise the filters can be stacked
+            self.filters[filtType][0] += inc
         
         if(self.filters[filtType][0] == 0):
             del self.filterOrder[self.filterOrder.index(filtType)]              # Remove this filter from the order of applied filters if it has no contribution
@@ -116,8 +123,12 @@ class FilterPanel(Panel):
         
         filteredIm = im
         for i in filterList:                                                    # Loop through the filters we're previewing and apply them in the correct order
-            for p in range(filters[i][0]):
-                filteredIm = filters[i][1](filteredIm)
+            if isinstance(filters[i][0], bool):                                 # Check if the filter uses True/False (boolean)
+                if filters[i][0]:                                               # If it's True, apply the filter once
+                    filteredIm = filters[i][1](filteredIm)
+            else:
+                for p in range(filters[i][0]):                                  # Otherwise, apply the filter the specified number of times
+                    filteredIm = filters[i][1](filteredIm)
             
         # Some filters can change the number of pixels... easier to just pad out the image to what it was
         # pad = np.zeros(self.mainPanel.unfilteredIm.shape)
@@ -139,6 +150,26 @@ class FilterPanel(Panel):
     def lowPass(self,im):
         lowpass = ndimage.gaussian_filter(im, 0.5)
         return lowpass
+    
+    def linearFit(self,im):
+        corrected_im = np.zeros_like(im)
+        
+        num_cols = im.shape[1]
+        x = np.arange(num_cols)
+
+        # Loop through each row
+        for i in range(im.shape[0]):
+            # Perform linear fit on the current row
+            coeffs = np.polyfit(x, im[i], 1)  # Degree 1 for a linear fit
+            
+            # Create the linear fit for this row
+            linear_fit = np.polyval(coeffs, x)
+            
+            # Subtract the linear fit from the original row and store in the result array
+            corrected_im[i] = im[i] - linear_fit
+        
+        return corrected_im
+
     ###########################################################################
     # Save (WIP)
     ###########################################################################

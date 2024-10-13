@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "g80sxm"
-version = "1.0.0"
+version = "1.0.1"
 description = "Analyse and create figures for Nanonis SPM data"
 authors = ["Julian Ceddia <jdceddia@gmail.com>"]
 readme = "README.md"
